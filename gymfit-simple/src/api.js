@@ -1,0 +1,63 @@
+import axios from 'axios';
+
+// Apuntamos al API Gateway que levantaste en Docker
+const API_URL = 'http://localhost:8080/api/v1/auth';
+
+const api = axios.create({
+    baseURL: API_URL,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+
+// Interceptor: Si ya tienes un token guardado, lo agrega a las peticiones
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('gymfit_token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
+export const authService = {
+    // LOGIN
+    login: async (email, password) => {
+        try {
+            const response = await api.post('/login', { email, password });
+            if (response.data.token) {
+                localStorage.setItem('gymfit_token', response.data.token);
+                localStorage.setItem('gymfit_user', JSON.stringify({
+                    userId: response.data.userId,
+                    role: response.data.role
+                }));
+            }
+            return response.data;
+        } catch (error) {
+            console.error("Error en login:", error);
+            throw error.response ? error.response.data : { message: 'Error de conexión con el servidor' };
+        }
+    },
+
+    // REGISTRO
+    register: async (userData) => {
+        try {
+            const response = await api.post('/register', userData);
+            if (response.data.token) {
+                localStorage.setItem('gymfit_token', response.data.token);
+                localStorage.setItem('gymfit_user', JSON.stringify({
+                    userId: response.data.userId,
+                    role: response.data.role
+                }));
+            }
+            return response.data;
+        } catch (error) {
+            console.error("Error en registro:", error);
+            throw error.response ? error.response.data : { message: 'Error de conexión con el servidor' };
+        }
+    },
+
+    logout: () => {
+        localStorage.removeItem('gymfit_token');
+        localStorage.removeItem('gymfit_user');
+    }
+};

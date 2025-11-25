@@ -1,0 +1,43 @@
+services:
+  # 1. Base de Datos para Usuarios (MongoDB)
+  auth-db:
+    image: mongo:latest
+    container_name: gymfit-auth-db
+    ports:
+      - "27017:27017"
+    volumes:
+      - auth-data:/data/db
+
+  # 2. Servicio de Autenticación (Login/Registro)
+  auth-service:
+    build: ./auth-service
+    container_name: gymfit-auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - MONGO_URI=mongodb://auth-db:27017/auth_service_db
+      - JWT_SECRET=super_secreto_gymfit_key
+    depends_on:
+      - auth-db
+    volumes:
+      - ./auth-service:/usr/src/app
+      - /usr/src/app/node_modules
+
+  # 3. API Gateway (La puerta de entrada)
+  api-gateway:
+    build: ./api-gateway
+    container_name: gymfit-api-gateway
+    ports:
+      - "8080:8080" # Tu frontend hablará con este puerto
+    environment:
+      - PORT=8080
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      - auth-service
+    volumes:
+      - ./api-gateway:/usr/src/app
+      - /usr/src/app/node_modules
+
+volumes:
+  auth-data:

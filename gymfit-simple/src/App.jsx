@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from 'react'; // Agregamos useEffect por si acaso, aunque aquí usaremos lazy state
 import './App.css';
 
 // Importamos las páginas
@@ -9,13 +9,20 @@ import Dashboard from './pages/Dashboard';
 import { authService } from './api';
 
 function App() {
-  const [currentView, setCurrentView] = useState('landing');
-  
-  // ✅ CORRECCIÓN: Inicializamos el usuario directamente aquí.
-  // Así evitamos el error de "setState inside useEffect".
+  // 1. PRIMERO: Inicializamos el usuario (esto ya lo tenías bien)
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('gymfit_user');
     return savedUser ? JSON.parse(savedUser) : null;
+  });
+
+  // 2. SEGUNDO (LA CORRECCIÓN): Inicializamos la vista basándonos en si hay usuario o no
+  const [currentView, setCurrentView] = useState(() => {
+    // Si existe el usuario en localStorage, vamos directo al dashboard
+    if (localStorage.getItem('gymfit_user')) {
+      return 'dashboard';
+    }
+    // Si no, vamos al landing
+    return 'landing';
   });
 
   const handleLoginSuccess = () => {
@@ -36,10 +43,20 @@ function App() {
   }
 
   if (currentView === 'login' || currentView === 'register') {
+    // Pequeña protección: si el usuario intenta ir a login estando logueado
+    if (user && currentView === 'login') {
+       setCurrentView('dashboard');
+       return null;
+    }
     return <AuthPage onLoginSuccess={handleLoginSuccess} onNavigate={setCurrentView} initialView={currentView} />;
   }
 
   if (currentView === 'dashboard') {
+    // Protección extra: si intenta ir al dashboard sin usuario, lo mandamos a login
+    if (!user) {
+        setCurrentView('login');
+        return null;
+    }
     return <Dashboard user={user} onLogout={handleLogout} />;
   }
 

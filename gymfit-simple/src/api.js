@@ -29,7 +29,8 @@ export const authService = {
                 localStorage.setItem('gymfit_token', response.data.token);
                 localStorage.setItem('gymfit_user', JSON.stringify({
                     userId: response.data.userId,
-                    role: response.data.role
+                    role: response.data.role,
+                    firstName: response.data.firstName 
                 }));
             }
             return response.data;
@@ -47,7 +48,8 @@ export const authService = {
                 localStorage.setItem('gymfit_token', response.data.token);
                 localStorage.setItem('gymfit_user', JSON.stringify({
                     userId: response.data.userId,
-                    role: response.data.role
+                    role: response.data.role,
+                    firstName: userData.firstName 
                 }));
             }
             return response.data;
@@ -57,9 +59,11 @@ export const authService = {
         }
     },
 
+    // CORRECCIÓN: Logout ahora solo borra la sesión, NO el perfil personalizado
     logout: () => {
         localStorage.removeItem('gymfit_token');
         localStorage.removeItem('gymfit_user');
+        // NO borramos 'gymfit_avatar' ni 'gymfit_custom_name' para persistencia
     }
 };
 
@@ -67,9 +71,8 @@ export const trainingService = {
     // Crear una rutina (Solo Entrenadores)
     createRoutine: async (routineData) => {
         try {
-            // routineData debe incluir: name, description, clientId, exercises, trainerId
             const response = await api.post('/training', routineData, {
-                baseURL: 'http://localhost:8080/api/v1' // Forzamos base correcta al Gateway general
+                baseURL: 'http://localhost:8080/api/v1' 
             });
             return response.data;
         } catch (error) {
@@ -78,7 +81,7 @@ export const trainingService = {
         }
     },
 
-    // Obtener rutinas de un cliente (Para el Dashboard del Cliente)
+    // Obtener rutinas de un cliente
     getClientRoutines: async (clientId) => {
         try {
             const response = await api.get(`/training/client/${clientId}`, {
@@ -91,10 +94,9 @@ export const trainingService = {
         }
     },
 
-    // Guardar Progreso (Cliente registra peso/reps)
+    // Guardar Progreso
     logProgress: async (data) => {
         try {
-            // data debe tener: clientId, routineId, exerciseName, weightUsed, repsDone
             const response = await api.post('/training/progress', data, {
                 baseURL: 'http://localhost:8080/api/v1' 
             });
@@ -102,6 +104,19 @@ export const trainingService = {
         } catch (error) {
             console.error("Error guardando progreso:", error);
             throw error.response ? error.response.data : { message: 'Error de servidor' };
+        }
+    },
+
+    // Obtener historial completo
+    getClientHistory: async (clientId) => {
+        try {
+            const response = await api.get(`/training/progress/${clientId}`, {
+                baseURL: 'http://localhost:8080/api/v1'
+            });
+            return response.data;
+        } catch (error) {
+            console.error("Error obteniendo historial:", error);
+            return []; 
         }
     }
 };

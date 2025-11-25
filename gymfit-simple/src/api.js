@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 // Apuntamos al API Gateway que levantaste en Docker
+// La base por defecto es Auth, pero la sobrescribimos para Training
 const API_URL = 'http://localhost:8080/api/v1/auth';
 
 const api = axios.create({
@@ -61,7 +62,6 @@ export const authService = {
         localStorage.removeItem('gymfit_user');
     }
 };
-const TRAINING_API_URL = 'http://localhost:8080/api/v1/training';
 
 export const trainingService = {
     // Crear una rutina (Solo Entrenadores)
@@ -69,7 +69,7 @@ export const trainingService = {
         try {
             // routineData debe incluir: name, description, clientId, exercises, trainerId
             const response = await api.post('/training', routineData, {
-                baseURL: 'http://localhost:8080/api/v1' // Forzamos base correcta si api instancia es distinta
+                baseURL: 'http://localhost:8080/api/v1' // Forzamos base correcta al Gateway general
             });
             return response.data;
         } catch (error) {
@@ -87,6 +87,20 @@ export const trainingService = {
             return response.data;
         } catch (error) {
             console.error("Error obteniendo rutinas:", error);
+            throw error.response ? error.response.data : { message: 'Error de servidor' };
+        }
+    },
+
+    // Guardar Progreso (Cliente registra peso/reps)
+    logProgress: async (data) => {
+        try {
+            // data debe tener: clientId, routineId, exerciseName, weightUsed, repsDone
+            const response = await api.post('/training/progress', data, {
+                baseURL: 'http://localhost:8080/api/v1' 
+            });
+            return response.data;
+        } catch (error) {
+            console.error("Error guardando progreso:", error);
             throw error.response ? error.response.data : { message: 'Error de servidor' };
         }
     }

@@ -12,7 +12,8 @@ app.use(cors({
 }));
 
 // 2. Definir URL de los servicios (vienen de docker-compose.yml)
-const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001'
+const TRAINING_SERVICE_URL = process.env.TRAINING_SERVICE_URL || 'http://localhost:3002';;
 
 // 3. Ruta de Salud (Para ver si el Gateway está vivo)
 app.get('/', (req, res) => {
@@ -31,6 +32,15 @@ app.use('/api/v1/auth', createProxyMiddleware({
     onError: (err, req, res) => {
         console.error('[Proxy Error]', err);
         res.status(500).send('Error de conexión con el microservicio');
+    }
+}));
+
+app.use('/api/v1/training', createProxyMiddleware({
+    target: TRAINING_SERVICE_URL,
+    changeOrigin: true,
+    // Importante: Training service espera /api/v1/training, así que no reescribimos path
+    onProxyReq: (proxyReq, req, res) => {
+        console.log(`[Proxy] Redirigiendo Training -> ${TRAINING_SERVICE_URL}`);
     }
 }));
 

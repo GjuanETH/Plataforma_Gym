@@ -1,24 +1,45 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+# --- Dependencias (¡Lo más importante!) ---
+node_modules/
+**/node_modules/
+npm-debug.log
+yarn-error.log
 
-node_modules
-dist
-dist-ssr
-*.local
+# --- Variables de Entorno y Secretos ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# --- Builds de Producción (Frontend) ---
+dist/
+build/
+**/dist/
+**/build/
+
+# --- Archivos del Sistema Operativo ---
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --- Archivos de IDE (Configuraciones locales) ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- Docker ---
+# Ignorar datos de volúmenes si decidiste guardarlos localmente
+auth-data/
+training-data/
+db-data/
+# Ignorar logs de docker si los hubiera
+*.log
+
+# --- Tests ---
+coverage/
+
+# --- Archivos temporales ---
+tmp/
+temp/

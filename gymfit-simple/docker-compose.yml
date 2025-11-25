@@ -24,6 +24,30 @@ services:
       - ./auth-service:/usr/src/app
       - /usr/src/app/node_modules
 
+  # 3. Base de Datos de Entrenamientos
+  training-db:
+    image: mongo:latest
+    container_name: gymfit-training-db
+    ports:
+      - "27018:27017" # Nota el puerto diferente (27018)
+    volumes:
+      - training-data:/data/db
+
+  # 4. Servicio de Entrenamientos
+  training-services:
+    build: ./training-services
+    container_name: gymfit-training-services
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - MONGO_URI=mongodb://training-db:27017/training_service_db
+    depends_on:
+      - training-db
+    volumes:
+      - ./training-services:/usr/src/app
+      - /usr/src/app/node_modules
+
   # 3. API Gateway (La puerta de entrada)
   api-gateway:
     build: ./api-gateway
@@ -33,6 +57,8 @@ services:
     environment:
       - PORT=8080
       - AUTH_SERVICE_URL=http://auth-service:3001
+      - TRAINING_SERVICES_URL=http://training-services:3002
+
     depends_on:
       - auth-service
     volumes:
@@ -41,3 +67,4 @@ services:
 
 volumes:
   auth-data:
+  training-data:

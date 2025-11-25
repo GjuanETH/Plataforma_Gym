@@ -1,11 +1,14 @@
-import { useState } from 'react';
-import { authService, trainingService } from './api'; // Asegúrate de tener trainingService en api.js
+import { useState, useEffect } from 'react';
+import { authService, trainingService } from './api';
 import './App.css';
 
 function App() {
   const [currentView, setCurrentView] = useState('landing'); 
   const [role, setRole] = useState('Client');
   
+  // Leemos el usuario al principio para que esté disponible en toda la app
+  const user = JSON.parse(localStorage.getItem('gymfit_user') || '{}');
+
   // --- ESTADOS DE AUTENTICACIÓN ---
   const [formData, setFormData] = useState({
     email: '',
@@ -17,18 +20,26 @@ function App() {
   const [loading, setLoading] = useState(false);
 
   // --- ESTADOS PARA CREAR RUTINA (Solo Entrenador) ---
-  const [routineName, setRoutineName] = useState('');
-  const [clientTargetId, setClientTargetId] = useState('');
-  const [exercisesList, setExercisesList] = useState([]);
-  // Estado temporal para el ejercicio que se está escribiendo
+  const [newRoutine, setNewRoutine] = useState({ name: '', description: '', clientId: '', exercises: [] });
   const [tempExercise, setTempExercise] = useState({ name: '', sets: '', reps: '' });
 
-  // --- MANEJADORES DE INPUTS ---
+  // --- ESTADOS PARA CLIENTE ---
+  const [myRoutines, setMyRoutines] = useState([]);
+
+  // --- EFECTO: CARGAR RUTINAS (Solo si es Cliente y está en Dashboard) ---
+  useEffect(() => {
+      if (currentView === 'dashboard' && user.role === 'Client' && user.userId) {
+          trainingService.getClientRoutines(user.userId)
+              .then(data => setMyRoutines(data))
+              .catch(err => console.error("Error cargando rutinas:", err));
+      }
+  }, [currentView, user.role, user.userId]);
+
+  // --- MANEJADORES ---
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // --- LÓGICA DE AUTENTICACIÓN ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -56,44 +67,21 @@ function App() {
     }
   };
 
-  // --- LÓGICA DE RUTINAS (Entrenador) ---
-  
-  // 1. Agregar un ejercicio a la lista visual (memoria)
-  const handleAddExercise = () => {
-      if (!tempExercise.name || !tempExercise.sets || !tempExercise.reps) {
-          alert("Completa los datos del ejercicio");
-          return;
-      }
-      setExercisesList([...exercisesList, tempExercise]);
-      setTempExercise({ name: '', sets: '', reps: '' }); // Limpiar inputs pequeños
+  // Funciones de Entrenador
+  const addExercise = () => {
+      if (!tempExercise.name || !tempExercise.sets || !tempExercise.reps) return;
+      setNewRoutine({ ...newRoutine, exercises: [...newRoutine.exercises, tempExercise] });
+      setTempExercise({ name: '', sets: '', reps: '' });
   };
 
-  // 2. Guardar la rutina completa en el Backend
   const handleSaveRoutine = async () => {
-      if (!routineName || !clientTargetId || exercisesList.length === 0) {
-          alert("Faltan datos de la rutina (Nombre, ID Cliente o Ejercicios)");
-          return;
-      }
-
-      const user = JSON.parse(localStorage.getItem('gymfit_user') || '{}');
-      setLoading(true);
-
       try {
-          await trainingService.createRoutine({
-              name: routineName,
-              description: "Rutina personalizada",
-              trainerId: user.userId,
-              clientId: clientTargetId,
-              exercises: exercisesList
-          });
-          
-          alert("¡Rutina Asignada con Éxito!");
-          // Limpiar todo el formulario
-          setRoutineName('');
-          setClientTargetId('');
-          setExercisesList([]);
+          setLoading(true);
+          await trainingService.createRoutine({ ...newRoutine, trainerId: user.userId });
+          alert('¡Rutina creada con éxito!');
+          setNewRoutine({ name: '', description: '', clientId: '', exercises: [] });
       } catch (err) {
-          alert("Error al guardar: " + (err.message || "Error de servidor"));
+          alert('Error: ' + (err.message || 'No se pudo crear'));
       } finally {
           setLoading(false);
       }
@@ -114,95 +102,124 @@ function App() {
     );
   }
 
-  // 2. Dashboard (ACTUALIZADO)
+  // 2. Dashboard
   if (currentView === 'dashboard') {
-      const user = JSON.parse(localStorage.getItem('gymfit_user') || '{}');
-      
       return (
           <div className="app-container" style={{ alignItems: 'flex-start', overflowY: 'auto', paddingTop: '40px' }}>
-              <div className="dashboard-content" style={{ width: '100%', maxWidth: '800px', margin: '0 auto' }}>
+              <div className="dashboard-content" style={{ width: '100%', maxWidth: '900px', margin: '0 auto' }}>
                   
                   {/* Header */}
                   <div className="auth-card" style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: '20px', padding: '20px' }}>
                       <div>
-                          <h2 className="brand-title" style={{ fontSize: '24px', textAlign: 'left', marginBottom: '5px' }}>Hola, {user.role}</h2>
+                          <h1 className="brand-title" style={{ fontSize: '28px', textAlign: 'left', marginBottom: '5px' }}>
+                              HOLA, {user.role === 'Trainer' ? 'TRAINER' : 'CLIENT'}
+                          </h1>
                           <p style={{ color: '#aaa', fontSize: '12px' }}>ID Usuario: {user.userId}</p>
                       </div>
                       <button className="btn-primary" style={{ width: 'auto', padding: '10px 20px', background: '#333' }} onClick={() => {
                           authService.logout();
                           setCurrentView('landing');
-                      }}>Salir</button>
+                      }}>SALIR</button>
                   </div>
 
-                  {/* --- VISTA ENTRENADOR: CREAR RUTINA --- */}
+                  {/* --- VISTA ENTRENADOR --- */}
                   {user.role === 'Trainer' && (
                       <div className="auth-card" style={{ alignItems: 'stretch' }}>
-                          <h3 style={{ color: 'white', marginBottom: '20px', borderBottom: '1px solid #333', paddingBottom: '10px' }}>📋 Crear Nueva Rutina</h3>
-
+                          <h3 style={{ color: 'white', marginBottom: '20px' }}>📋 Crear Nueva Rutina</h3>
+                          
                           <div className="input-group">
-                              <label className="label-text">Nombre de la Rutina</label>
+                              <label className="label-text">NOMBRE DE LA RUTINA</label>
                               <input className="input-field" placeholder="Ej. Hipertrofia Espalda" 
-                                  value={routineName} onChange={(e) => setRoutineName(e.target.value)} />
+                                  value={newRoutine.name} onChange={(e) => setNewRoutine({...newRoutine, name: e.target.value})} 
+                              />
                           </div>
-
                           <div className="input-group">
-                              <label className="label-text">ID del Cliente (Destinatario)</label>
+                              <label className="label-text">ID DEL CLIENTE (DESTINATARIO)</label>
                               <input className="input-field" placeholder="Pega aquí el ID del cliente" 
-                                  value={clientTargetId} onChange={(e) => setClientTargetId(e.target.value)} />
+                                  value={newRoutine.clientId} onChange={(e) => setNewRoutine({...newRoutine, clientId: e.target.value})} 
+                              />
                           </div>
 
-                          {/* Sección Agregar Ejercicios */}
-                          <div style={{ background: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #333' }}>
-                              <label className="label-text" style={{ color: '#E50914', marginBottom: '10px' }}>+ Agregar Ejercicio</label>
-                              <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-                                  <input className="input-field" style={{ flex: 2 }} placeholder="Nombre (Ej. Sentadilla)" 
-                                      value={tempExercise.name} onChange={(e) => setTempExercise({...tempExercise, name: e.target.value})} />
-                                  <input className="input-field" style={{ flex: 1 }} placeholder="Series" type="number"
-                                      value={tempExercise.sets} onChange={(e) => setTempExercise({...tempExercise, sets: e.target.value})} />
-                                  <input className="input-field" style={{ flex: 1 }} placeholder="Reps" 
-                                      value={tempExercise.reps} onChange={(e) => setTempExercise({...tempExercise, reps: e.target.value})} />
+                          <div style={{ background: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
+                              <label className="label-text" style={{ color: '#E50914' }}>+ AGREGAR EJERCICIO</label>
+                              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '10px', marginTop: '10px' }}>
+                                  <input className="input-field" placeholder="Nombre (Ej. Sentadilla)" 
+                                      value={tempExercise.name} onChange={(e) => setTempExercise({...tempExercise, name: e.target.value})} 
+                                  />
+                                  <input className="input-field" placeholder="Series" type="number"
+                                      value={tempExercise.sets} onChange={(e) => setTempExercise({...tempExercise, sets: e.target.value})} 
+                                  />
+                                  <input className="input-field" placeholder="Reps" 
+                                      value={tempExercise.reps} onChange={(e) => setTempExercise({...tempExercise, reps: e.target.value})} 
+                                  />
                               </div>
-                              <button className="btn-primary" type="button" onClick={handleAddExercise} style={{ marginTop: '0', fontSize: '12px' }}>Añadir a la lista</button>
+                              <button className="btn-primary" style={{ marginTop: '10px', fontSize: '12px' }} onClick={addExercise}>
+                                  AÑADIR A LA LISTA
+                              </button>
                           </div>
 
-                          {/* Lista Previa */}
-                          {exercisesList.length > 0 && (
-                              <div style={{ marginBottom: '20px' }}>
-                                  <h4 style={{ color: '#aaa', fontSize: '14px', marginBottom: '10px' }}>Ejercicios en esta rutina:</h4>
-                                  <ul style={{ listStyle: 'none' }}>
-                                      {exercisesList.map((ex, i) => (
-                                          <li key={i} style={{ background: '#222', padding: '10px', marginBottom: '5px', borderRadius: '4px', borderLeft: '3px solid #E50914', display: 'flex', justifyContent: 'space-between', color: 'white' }}>
-                                              <span>{ex.name}</span>
-                                              <span style={{ color: '#aaa' }}>{ex.sets} x {ex.reps}</span>
-                                          </li>
-                                      ))}
-                                  </ul>
-                              </div>
+                          {newRoutine.exercises.length > 0 && (
+                              <ul style={{ marginBottom: '20px', color: '#ddd' }}>
+                                  {newRoutine.exercises.map((ex, idx) => (
+                                      <li key={idx} style={{ marginBottom: '5px', borderLeft: '2px solid #E50914', paddingLeft: '10px' }}>
+                                          <strong>{ex.name}</strong>: {ex.sets} series x {ex.reps}
+                                      </li>
+                                  ))}
+                              </ul>
                           )}
-
                           <button className="btn-primary" onClick={handleSaveRoutine} disabled={loading}>
                               {loading ? 'Guardando...' : 'GUARDAR Y ASIGNAR RUTINA'}
                           </button>
                       </div>
                   )}
 
-                  {/* --- VISTA CLIENTE: VER RUTINAS --- */}
+                  {/* --- VISTA CLIENTE --- */}
                   {user.role === 'Client' && (
-                      <div className="auth-card">
-                          <h3 style={{ color: 'white' }}>💪 Mis Rutinas</h3>
-                          <p style={{ color: '#aaa', marginTop: '10px' }}>
-                              Aquí aparecerán las rutinas que te asigne tu entrenador.
-                              <br/><br/>
-                              (Funcionalidad de visualización pendiente para el siguiente paso).
-                          </p>
+                      <div style={{ width: '100%' }}>
+                          <h2 className="section-title" style={{ color: 'white', marginBottom: '20px', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                              💪 MIS RUTINAS ASIGNADAS
+                          </h2>
+
+                          {myRoutines.length === 0 ? (
+                              <div className="auth-card" style={{ textAlign: 'center' }}>
+                                  <p style={{ color: '#aaa' }}>No tienes rutinas asignadas todavía.</p>
+                                  <p style={{ fontSize: '12px', marginTop: '10px' }}>Pídele a tu entrenador que cree una usando tu ID.</p>
+                              </div>
+                          ) : (
+                              <div className="exercises-list">
+                                  {myRoutines.map((routine) => (
+                                      <div key={routine._id} className="auth-card" style={{ alignItems: 'flex-start', marginBottom: '20px', animation: 'fadeIn 0.5s' }}>
+                                          <div style={{ width: '100%', borderBottom: '1px solid #333', paddingBottom: '15px', marginBottom: '15px' }}>
+                                              <h3 style={{ color: '#E50914', fontSize: '24px', textTransform: 'uppercase', margin: 0 }}>{routine.name}</h3>
+                                              <p style={{ color: '#aaa', fontSize: '14px', marginTop: '5px' }}>
+                                                  {routine.description || "Sin descripción"} • Asignada el {new Date(routine.createdAt).toLocaleDateString()}
+                                              </p>
+                                          </div>
+
+                                          <div style={{ width: '100%', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '10px' }}>
+                                              {routine.exercises.map((ex, idx) => (
+                                                  <div key={idx} style={{ background: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '8px', borderLeft: '4px solid #E50914' }}>
+                                                      <strong style={{ display: 'block', color: 'white', fontSize: '16px' }}>{ex.name}</strong>
+                                                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '14px', color: '#ccc' }}>
+                                                          <span>Series: <strong style={{ color: 'white' }}>{ex.sets}</strong></span>
+                                                          <span>Reps: <strong style={{ color: 'white' }}>{ex.reps}</strong></span>
+                                                      </div>
+                                                  </div>
+                                              ))}
+                                          </div>
+                                      </div>
+                                  ))}
+                              </div>
+                          )}
                       </div>
                   )}
+
               </div>
           </div>
       )
   }
 
-  // 3. Login / Registro (Vista por defecto para auth)
+  // 3. Login / Registro (Vista por defecto)
   const isLogin = currentView === 'login';
 
   return (

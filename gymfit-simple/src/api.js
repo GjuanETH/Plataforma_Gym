@@ -61,3 +61,33 @@ export const authService = {
         localStorage.removeItem('gymfit_user');
     }
 };
+const TRAINING_API_URL = 'http://localhost:8080/api/v1/training';
+
+export const trainingService = {
+    // Crear una rutina (Solo Entrenadores)
+    createRoutine: async (routineData) => {
+        try {
+            // routineData debe incluir: name, description, clientId, exercises, trainerId
+            const response = await api.post('/training', routineData, {
+                baseURL: 'http://localhost:8080/api/v1' // Forzamos base correcta si api instancia es distinta
+            });
+            return response.data;
+        } catch (error) {
+            console.error("Error creando rutina:", error);
+            throw error.response ? error.response.data : { message: 'Error de servidor' };
+        }
+    },
+
+    // Obtener rutinas de un cliente (Para el Dashboard del Cliente)
+    getClientRoutines: async (clientId) => {
+        try {
+            const response = await api.get(`/training/client/${clientId}`, {
+                baseURL: 'http://localhost:8080/api/v1'
+            });
+            return response.data;
+        } catch (error) {
+            console.error("Error obteniendo rutinas:", error);
+            throw error.response ? error.response.data : { message: 'Error de servidor' };
+        }
+    }
+};

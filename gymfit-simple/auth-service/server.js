@@ -1,23 +1,31 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+
+// --- CARGA DE MODELOS (AQUÍ SÍ VAN) ---
+// Esto registra los esquemas en Mongoose para que 'chat.js' pueda usarlos
+require('./models/User'); 
+require('./models/message'); 
+// --------------------------------------
+
 const authRoutes = require('./routes/auth');
+const chatRoutes = require('./routes/chat');
 
 const app = express();
 
-// Middleware
+app.use(cors());
 app.use(express.json());
-app.use(cors()); // Permite conexiones externas
 
-// Conexión a Base de Datos (Usa la variable de entorno de Docker)
+// Rutas
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/chat', chatRoutes);
+
+// Conexión DB
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/auth_service_db';
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ Auth Service conectado a MongoDB'))
   .catch(err => console.error('❌ Error conectando a MongoDB:', err));
-
-// Rutas
-app.use('/api/v1/auth', authRoutes);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`🚀 Auth Service corriendo en puerto ${PORT}`));

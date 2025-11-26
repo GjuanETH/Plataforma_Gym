@@ -1,32 +1,38 @@
 import axios from 'axios';
 
-// Apuntamos al API Gateway que levantaste en Docker
-// La base por defecto es Auth, pero la sobrescribimos para Training
-const API_URL = 'http://localhost:8080/api/v1/auth';
+// --- CONFIGURACIÓN CENTRAL ---
+// Apuntamos a la raíz del API Gateway.
+// El Gateway se encarga de redirigir a /auth o /training según el prefijo.
+const API_GATEWAY_URL = 'http://localhost:8080/api/v1';
 
 const api = axios.create({
-    baseURL: API_URL,
+    baseURL: API_GATEWAY_URL,
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-// Interceptor: Si ya tienes un token guardado, lo agrega a las peticiones
+// --- INTERCEPTOR ---
+// Agrega el token a CADA petición si el usuario está logueado
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('gymfit_token');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
+}, (error) => {
+    return Promise.reject(error);
 });
 
 export const authService = {
-    // LOGIN
+    // LOGIN (Microservicio Auth)
     login: async (email, password) => {
         try {
-            const response = await api.post('/login', { email, password });
+            // POST http://localhost:8080/api/v1/auth/login
+            const response = await api.post('/auth/login', { email, password });
             if (response.data.token) {
                 localStorage.setItem('gymfit_token', response.data.token);
+                // Guardamos datos básicos del usuario
                 localStorage.setItem('gymfit_user', JSON.stringify({
                     userId: response.data.userId,
                     role: response.data.role,
@@ -36,14 +42,14 @@ export const authService = {
             return response.data;
         } catch (error) {
             console.error("Error en login:", error);
-            throw error.response ? error.response.data : { message: 'Error de conexión con el servidor' };
+            throw error.response ? error.response.data : { message: 'Error de conexión con Auth' };
         }
     },
 
-    // REGISTRO
+    // REGISTRO (Microservicio Auth)
     register: async (userData) => {
         try {
-            const response = await api.post('/register', userData);
+            const response = await api.post('/auth/register', userData);
             if (response.data.token) {
                 localStorage.setItem('gymfit_token', response.data.token);
                 localStorage.setItem('gymfit_user', JSON.stringify({
@@ -55,68 +61,110 @@ export const authService = {
             return response.data;
         } catch (error) {
             console.error("Error en registro:", error);
-            throw error.response ? error.response.data : { message: 'Error de conexión con el servidor' };
+            throw error.response ? error.response.data : { message: 'Error de conexión con Auth' };
         }
     },
 
-    // CORRECCIÓN: Logout ahora solo borra la sesión, NO el perfil personalizado
     logout: () => {
         localStorage.removeItem('gymfit_token');
         localStorage.removeItem('gymfit_user');
-        // NO borramos 'gymfit_avatar' ni 'gymfit_custom_name' para persistencia
     }
 };
 
 export const trainingService = {
-    // Crear una rutina (Solo Entrenadores)
+    // CREAR RUTINA (Microservicio Training)
     createRoutine: async (routineData) => {
         try {
-            const response = await api.post('/training', routineData, {
-                baseURL: 'http://localhost:8080/api/v1' 
-            });
+            // POST http://localhost:8080/api/v1/training
+            const response = await api.post('/training', routineData);
             return response.data;
         } catch (error) {
             console.error("Error creando rutina:", error);
-            throw error.response ? error.response.data : { message: 'Error de servidor' };
+            throw error.response ? error.response.data : { message: 'Error al crear rutina' };
         }
     },
 
-    // Obtener rutinas de un cliente
+    // OBTENER RUTINAS DE UN CLIENTE
     getClientRoutines: async (clientId) => {
         try {
-            const response = await api.get(`/training/client/${clientId}`, {
-                baseURL: 'http://localhost:8080/api/v1'
-            });
+            // GET http://localhost:8080/api/v1/training/client/{clientId}
+            const response = await api.get(`/training/client/${clientId}`);
             return response.data;
         } catch (error) {
             console.error("Error obteniendo rutinas:", error);
-            throw error.response ? error.response.data : { message: 'Error de servidor' };
+            throw error.response ? error.response.data : { message: 'Error al obtener rutinas' };
         }
     },
 
-    // Guardar Progreso
+    // ELIMINAR RUTINA
+    deleteRoutine: async (routineId) => {
+        try {
+            // DELETE http://localhost:8080/api/v1/training/{routineId}
+            const response = await api.delete(`/training/${routineId}`);
+            return response.data;
+        } catch (error) {
+            console.error("Error eliminando rutina:", error);
+            throw error.response ? error.response.data : { message: 'Error al eliminar rutina' };
+        }
+    },
+
+    // GUARDAR PROGRESO
     logProgress: async (data) => {
         try {
-            const response = await api.post('/training/progress', data, {
-                baseURL: 'http://localhost:8080/api/v1' 
-            });
+            const response = await api.post('/training/progress', data);
             return response.data;
         } catch (error) {
             console.error("Error guardando progreso:", error);
-            throw error.response ? error.response.data : { message: 'Error de servidor' };
+            throw error.response ? error.response.data : { message: 'Error al guardar progreso' };
         }
     },
 
-    // Obtener historial completo
+    // OBTENER HISTORIAL
     getClientHistory: async (clientId) => {
         try {
-            const response = await api.get(`/training/progress/${clientId}`, {
-                baseURL: 'http://localhost:8080/api/v1'
-            });
+            const response = await api.get(`/training/progress/${clientId}`);
             return response.data;
         } catch (error) {
             console.error("Error obteniendo historial:", error);
             return []; 
+        }
+    }
+};
+
+
+export const chatService = {
+    // Obtener lista de entrenadores
+    getTrainers: async () => {
+        try {
+            // Ajusta la URL base si pusiste el chat en otro microservicio
+            // Asumimos que está en el Gateway general bajo /chat
+            const response = await api.get('/chat/trainers');
+            return response.data;
+        } catch (error) {
+            console.error("Error obteniendo entrenadores:", error);
+            return [];
+        }
+    },
+
+    // Obtener historial de chat con una persona
+    getChatHistory: async (myId, otherId) => {
+        try {
+            const response = await api.get(`/chat/history/${myId}/${otherId}`);
+            return response.data;
+        } catch (error) {
+            console.error("Error obteniendo chat:", error);
+            return [];
+        }
+    },
+
+    // Enviar mensaje
+    sendMessage: async (messageData) => {
+        try {
+            const response = await api.post('/chat/send', messageData);
+            return response.data;
+        } catch (error) {
+            console.error("Error enviando mensaje:", error);
+            throw error;
         }
     }
 };

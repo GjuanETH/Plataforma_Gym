@@ -1,17 +1,35 @@
 /* =========================================
+   VARIABLES GLOBALES & RESET
+   ========================================= */
+:root {
+    --primary-red: #E50914;
+    --dark-bg: #050505;
+    --card-bg: #161616;
+    --text-white: #ffffff;
+    --text-gray: #888888;
+    --font-heading: 'Roboto', 'Helvetica Neue', sans-serif;
+}
+
+/* Scrollbar Personalizado (Webkit) */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0f0f0f; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary-red); }
+
+/* =========================================
    DASHBOARD LAYOUT GENERAL
    ========================================= */
-.dashboard-layout { display: flex; flex-direction: column; min-height: 100vh; background-color: #050505; }
+.dashboard-layout { display: flex; flex-direction: column; min-height: 100vh; background-color: var(--dark-bg); font-family: sans-serif; }
 .dashboard-main { display: flex; margin-top: 70px; height: calc(100vh - 70px); }
 
 /* --- SIDEBAR --- */
 .dashboard-sidebar { width: 250px; background-color: #111; border-right: 1px solid #222; padding: 30px 20px; display: flex; flex-direction: column; gap: 30px; overflow-y: auto; }
 .user-card { display: flex; align-items: center; gap: 15px; padding-bottom: 20px; border-bottom: 1px solid #222; }
 
-/* Avatar de Texto (por defecto) */
+/* Avatar de Texto */
 .avatar-circle { width: 45px; height: 45px; min-width: 45px; min-height: 45px; background: var(--primary-red); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; color: white; flex-shrink: 0; }
 
-/* NUEVO: Avatar de Imagen (Sidebar) */
+/* Avatar de Imagen */
 .sidebar-avatar {
     width: 45px;
     height: 45px;
@@ -30,28 +48,43 @@
 .nav-item.active, .nav-item:hover { background: rgba(229, 9, 20, 0.1); color: var(--primary-red); }
 
 /* --- CONTENIDO PRINCIPAL --- */
-.dashboard-content-area { flex: 1; padding: 40px; overflow-y: auto; }
+.dashboard-content-area { flex: 1; padding: 40px; overflow-y: auto; background-color: var(--dark-bg); }
 .page-title { color: white; font-family: var(--font-heading); font-size: 32px; margin-bottom: 30px; border-left: 5px solid var(--primary-red); padding-left: 15px; margin-top: 0; }
 .fade-in { animation: fadeIn 0.4s ease-in; }
 
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
 /* RUTINAS & FORMULARIOS */
-.routine-creator-box, .stat-card { background: #161616; border: 1px solid #333; border-radius: 16px; padding: 25px; margin-bottom: 20px; }
-.routine-creator-box h3 { color: white; margin-top: 0; }
+.routine-creator-box, .stat-card, .routine-manager-box { background: var(--card-bg); border: 1px solid #333; border-radius: 16px; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+.routine-creator-box h3 { color: white; margin-top: 0; display: flex; align-items: center; gap: 10px; }
+
 .form-grid { display: grid; gap: 15px; margin-bottom: 15px; }
 .form-grid.three-cols { grid-template-columns: 2fr 1fr 1fr; }
 .routines-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 25px; }
-.routine-card { background: #161616; border: 1px solid #333; border-radius: 16px; overflow: hidden; transition: transform 0.3s; }
+
+.routine-card { background: var(--card-bg); border: 1px solid #333; border-radius: 16px; overflow: hidden; transition: transform 0.3s, border-color 0.3s; }
 .routine-card:hover { transform: translateY(-5px); border-color: var(--primary-red); }
-.routine-header { padding: 20px; background: linear-gradient(45deg, #1a1a1a, #111); border-bottom: 1px solid #333; }
+
+.routine-header { padding: 20px; background: linear-gradient(45deg, #1a1a1a, #111); border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: flex-start; }
 .routine-header h3 { margin: 0; color: white; font-size: 18px; text-transform: uppercase; }
 .routine-date { display: flex; align-items: center; gap: 5px; color: #666; font-size: 12px; margin-top: 5px; }
+
 .exercises-list-scroll { max-height: 300px; overflow-y: auto; padding: 20px; }
 .exercise-item { display: flex; justify-content: space-between; align-items: center; background: #0a0a0a; padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid #333; }
 .exercise-info strong { display: block; color: #ddd; font-size: 14px; }
 .exercise-info small { color: #666; font-size: 12px; }
+
 .exercise-actions { display: flex; gap: 5px; }
 .input-mini { width: 60px; padding: 5px; background: #222; border: 1px solid #444; color: white; border-radius: 4px; text-align: center; }
-.btn-icon { width: 30px; height: 30px; background: var(--primary-red); border: none; border-radius: 4px; color: white; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+.input-field { width: 100%; padding: 12px; background: #222; border: 1px solid #444; border-radius: 8px; color: white; margin-bottom: 10px; box-sizing: border-box; }
+.input-field:focus { border-color: var(--primary-red); outline: none; }
+
+.btn-icon { width: 30px; height: 30px; background: none; border: none; border-radius: 4px; color: white; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; }
+.btn-icon:hover { background: rgba(255, 255, 255, 0.1); }
+.btn-primary { background: var(--primary-red); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s; }
+.btn-primary:hover { background: #b0070f; }
+.btn-secondary { background: #333; color: white; border: 1px solid #444; padding: 10px; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+.btn-secondary:hover { background: #444; border-color: #666; }
 
 /* ESTADÍSTICAS */
 .stats-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; grid-template-rows: auto auto; }
@@ -61,25 +94,25 @@
 .stat-label { color: var(--primary-red); font-size: 12px; }
 
 /* PERFIL DE ATLETA PREMIUM */
-.profile-header-card { background: #161616; border-radius: 16px; border: 1px solid #333; overflow: hidden; margin-bottom: 20px; position: relative; }
+.profile-header-card { background: var(--card-bg); border-radius: 16px; border: 1px solid #333; overflow: hidden; margin-bottom: 20px; position: relative; }
 .profile-cover { height: 150px; background: linear-gradient(90deg, #E50914 0%, #5e0509 100%); }
 .profile-content { padding: 0 30px 30px; display: flex; align-items: flex-end; margin-top: -50px; gap: 20px; }
 
-.profile-avatar-xl { width: 120px; height: 120px; min-width: 120px; min-height: 120px; background: #111; border: 5px solid #161616; border-radius: 50%; color: white; font-size: 48px; font-weight: bold; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
+.profile-avatar-xl { width: 120px; height: 120px; min-width: 120px; min-height: 120px; background: #111; border: 5px solid var(--card-bg); border-radius: 50%; color: white; font-size: 48px; font-weight: bold; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
 .profile-avatar-wrapper { position: relative; width: 120px; height: 120px; min-width: 120px; min-height: 120px; margin-right: 20px; margin-top: -60px; flex-shrink: 0; z-index: 2; }
-.img-fit { object-fit: cover; width: 100%; height: 100%; border-radius: 50%; border: 5px solid #161616; display: block; }
-.avatar-edit-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; opacity: 0; transition: opacity 0.2s; border: 5px solid #161616; }
+.img-fit { object-fit: cover; width: 100%; height: 100%; border-radius: 50%; border: 5px solid var(--card-bg); display: block; }
+.avatar-edit-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; opacity: 0; transition: opacity 0.2s; border: 5px solid var(--card-bg); }
 .profile-avatar-wrapper:hover .avatar-edit-overlay { opacity: 1; }
 
 .profile-names { flex: 1; padding-bottom: 10px; overflow: hidden; }
-.input-field-transparent { background: transparent; border: none; border-bottom: 2px solid #E50914; color: white; font-size: 32px; font-weight: bold; width: 100%; outline: none; padding: 5px 0; }
+.input-field-transparent { background: transparent; border: none; border-bottom: 2px solid var(--primary-red); color: white; font-size: 32px; font-weight: bold; width: 100%; outline: none; padding: 5px 0; }
 .profile-stats-bar { display: flex; gap: 40px; padding: 0 30px 20px; margin-left: 140px; }
 .p-stat { text-align: center; }
 .p-stat strong { display: block; font-size: 20px; color: white; }
 .p-stat span { font-size: 12px; color: #888; text-transform: uppercase; }
 
 .profile-grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.bio-card, .streak-card, .activity-card { background: #161616; border: 1px solid #333; border-radius: 16px; padding: 25px; }
+.bio-card, .streak-card, .activity-card { background: var(--card-bg); border: 1px solid #333; border-radius: 16px; padding: 25px; }
 .bio-card { grid-row: span 2; }
 .card-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
 .card-header-flex h3 { margin: 0; color: white; font-size: 18px; }
@@ -92,15 +125,16 @@
 .btn-icon-action.cancel { background: #f44336; color: white; }
 .btn-icon-small { background: #333; border: none; color: white; padding: 8px; border-radius: 6px; cursor: pointer; }
 .btn-icon-small:hover { background: var(--primary-red); }
-.uploading-badge { position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); background: #E50914; color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+.uploading-badge { position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); background: var(--primary-red); color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
 
 .streak-card { display: flex; align-items: center; gap: 15px; background: linear-gradient(45deg, #161616, #222); }
 .streak-header { display: flex; align-items: center; gap: 15px; }
 .activity-card h3 { color: #888; font-size: 14px; text-transform: uppercase; margin-top: 0; margin-bottom: 20px; }
 
+/* RESPONSIVE */
 @media (max-width: 768px) {
   .dashboard-main { flex-direction: column; }
-  .dashboard-sidebar { width: 100%; flex-direction: row; padding: 15px; overflow-x: auto; gap: 10px; }
+  .dashboard-sidebar { width: 100%; flex-direction: row; padding: 15px; overflow-x: auto; gap: 10px; border-right: none; border-bottom: 1px solid #222; }
   .user-card { display: none; }
   .profile-content { flex-direction: column; align-items: center; text-align: center; margin-top: -60px; }
   .profile-avatar-wrapper { margin-right: 0; margin-top: 0; }
@@ -109,4 +143,6 @@
   .profile-actions { align-self: center; margin-top: 15px; }
   .stats-grid { grid-template-columns: 1fr; }
   .form-grid.three-cols { grid-template-columns: 1fr; }
+  /* Ajuste para el grid de entrenador en móvil */
+  div[style*="display: grid"] { grid-template-columns: 1fr !important; }
 }

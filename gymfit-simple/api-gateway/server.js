@@ -11,9 +11,9 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// 2. Definir URL de los servicios
-const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
-const TRAINING_SERVICE_URL = process.env.TRAINING_SERVICE_URL || 'http://localhost:3002'; // Corregido ;;
+// 2. Definir URL de los servicios (Variables de entorno o localhost para Docker)
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
+const TRAINING_SERVICE_URL = process.env.TRAINING_SERVICE_URL || 'http://training-services:3002'; 
 
 // 3. Ruta de Salud
 app.get('/', (req, res) => {
@@ -22,26 +22,27 @@ app.get('/', (req, res) => {
 
 // 4. Configurar Proxies
 
-// --- AUTH SERVICE ---
-app.use('/api/v1/auth', createProxyMiddleware({
+// --- AUTH SERVICE & CHAT (Todo va al puerto 3001) ---
+app.use(['/api/v1/auth', '/api/v1/chat'], createProxyMiddleware({
     target: AUTH_SERVICE_URL,
     changeOrigin: true,
+    pathRewrite: {
+        // No necesitamos reescribir nada, las rutas coinciden
+    },
     onProxyReq: (proxyReq, req, res) => {
-        console.log(`[Proxy Auth] ${req.method} ${req.originalUrl} -> ${AUTH_SERVICE_URL}`);
+        // Log opcional para ver que está pasando
+        // console.log(`[Proxy] ${req.method} ${req.path} -> ${AUTH_SERVICE_URL}`);
     },
     onError: (err, req, res) => {
-        console.error('[Proxy Error Auth]', err);
-        res.status(500).send('Error de conexión con Auth Service');
+        console.error('[Proxy Error Auth/Chat]', err);
+        res.status(500).send('Error de conexión con Auth/Chat Service');
     }
 }));
 
-// --- TRAINING SERVICE ---
+// --- TRAINING SERVICE (Va al puerto 3002) ---
 app.use('/api/v1/training', createProxyMiddleware({
     target: TRAINING_SERVICE_URL,
     changeOrigin: true,
-    onProxyReq: (proxyReq, req, res) => {
-        console.log(`[Proxy Training] Redirigiendo -> ${TRAINING_SERVICE_URL}`);
-    },
     onError: (err, req, res) => {
         console.error('[Proxy Error Training]', err);
         res.status(500).send('Error de conexión con Training Service');
@@ -51,6 +52,6 @@ app.use('/api/v1/training', createProxyMiddleware({
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
     console.log(`Gateway corriendo en el puerto ${PORT}`);
-    console.log(` -> Auth Service: ${AUTH_SERVICE_URL}`);
-    console.log(` -> Training Service: ${TRAINING_SERVICE_URL}`); // ¡Si no ves esto, no se actualizó!
+    console.log(` -> Redirigiendo Auth/Chat a: ${AUTH_SERVICE_URL}`);
+    console.log(` -> Redirigiendo Training a: ${TRAINING_SERVICE_URL}`);
 });

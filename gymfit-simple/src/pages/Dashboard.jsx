@@ -50,7 +50,7 @@ export default function Dashboard({ user, onLogout }) {
             .then(data => setMyRoutines(data))
             .catch(err => { 
                 console.error(err); 
-                setMyRoutines([]); // Limpiar si hay error o no se encuentra cliente
+                setMyRoutines([]); 
             });
     };
 
@@ -168,7 +168,6 @@ export default function Dashboard({ user, onLogout }) {
         if (!window.confirm("¿Estás seguro de que deseas eliminar esta rutina permanentemente?")) return;
         try { 
             await trainingService.deleteRoutine(routineId); 
-            // Recargamos la lista actual (si soy entrenador, busco por el ID que tengo en el input)
             loadRoutines(trainerSearchId || user.userId); 
             alert("Rutina eliminada correctamente ✅"); 
         } catch (err) { 
@@ -191,7 +190,6 @@ export default function Dashboard({ user, onLogout }) {
             await trainingService.createRoutine({ ...newRoutine, trainerId: user.userId }); 
             alert('¡Rutina asignada exitosamente!'); 
             
-            // Actualizar vista para mostrar la rutina creada
             setTrainerSearchId(newRoutine.clientId); 
             loadRoutines(newRoutine.clientId); 
             
@@ -223,7 +221,6 @@ export default function Dashboard({ user, onLogout }) {
                 repsDone: Number(inputs.reps) 
             }); 
             alert('Guardado ✅'); 
-            // Recalcular estadísticas después de guardar
             trainingService.getClientHistory(user.userId).then(logs => calculateRealStats(logs));
         } catch (err) { 
             alert(err.message); 
@@ -352,17 +349,37 @@ export default function Dashboard({ user, onLogout }) {
                                                 <h3>{r.name}</h3>
                                                 <span className="routine-date"><Calendar size={14}/> {new Date(r.createdAt).toLocaleDateString()}</span>
                                             </div>
+                                            {/* LISTA DE EJERCICIOS MEJORADA */}
                                             <div className="exercises-list-scroll">
                                                 {r.exercises?.map((e,i)=>(
                                                     <div key={i} className="exercise-item">
+                                                        {/* Info del ejercicio */}
                                                         <div className="exercise-info">
-                                                            <strong>{e.name}</strong>
-                                                            <small>{e.sets} series x {e.reps}</small>
+                                                            <strong className="ex-name">{e.name}</strong>
+                                                            <span className="ex-meta">{e.sets} series × {e.reps} reps</span>
                                                         </div>
+
+                                                        {/* Inputs y Botón */}
                                                         <div className="exercise-actions">
-                                                            <input className="input-mini" placeholder="Kg" onChange={ev=>handleProgressChange(r._id, e.name,'weight',ev.target.value)}/>
-                                                            <input className="input-mini" placeholder="Rep" onChange={ev=>handleProgressChange(r._id, e.name,'reps',ev.target.value)}/>
-                                                            <button className="btn-icon" onClick={()=>saveProgress(r._id, e.name)}><Save size={16}/></button>
+                                                            <input 
+                                                                className="input-mini" 
+                                                                placeholder="Kg" 
+                                                                type="number"
+                                                                onChange={ev=>handleProgressChange(r._id, e.name,'weight',ev.target.value)}
+                                                            />
+                                                            <input 
+                                                                className="input-mini" 
+                                                                placeholder="Reps" 
+                                                                type="number"
+                                                                onChange={ev=>handleProgressChange(r._id, e.name,'reps',ev.target.value)}
+                                                            />
+                                                            <button 
+                                                                className="btn-action-save" 
+                                                                title="Guardar progreso"
+                                                                onClick={()=>saveProgress(r._id, e.name)}
+                                                            >
+                                                                <Check size={18} />
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 ))}

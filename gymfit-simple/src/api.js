@@ -177,5 +177,16 @@ export const chatService = {
             console.error("Error enviando mensaje:", error);
             throw error;
         }
-    }
+    },
+
+    getMyClients: async (trainerId) => {
+        try {
+            const response = await api.get(`/chat/my-clients/${trainerId}`);
+            return response.data;
+        } catch (error) {
+            console.error("Error obteniendo clientes del chat:", error);
+            return [];
+        }
+    },
+    // ----------------------------
 };

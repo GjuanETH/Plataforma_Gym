@@ -53,4 +53,35 @@ router.get('/history/:userId/:otherId', async (req, res) => {
     }
 });
 
+// 4. OBTENER USUARIOS QUE HAN HABLADO CONMIGO (Para el Entrenador)
+// GET /api/v1/chat/my-clients/:trainerId
+router.get('/my-clients/:trainerId', async (req, res) => {
+    try {
+        const { trainerId } = req.params;
+
+        // 1. Buscar todos los mensajes donde el entrenador es emisor o receptor
+        const messages = await Message.find({
+            $or: [{ senderId: trainerId }, { receiverId: trainerId }]
+        });
+
+        // 2. Extraer los IDs de las "otras personas"
+        const clientIds = new Set();
+        messages.forEach(msg => {
+            const otherId = msg.senderId.toString() === trainerId 
+                ? msg.receiverId.toString() 
+                : msg.senderId.toString();
+            clientIds.add(otherId);
+        });
+
+        // 3. Buscar la info de esos clientes (Nombre, Foto, Email)
+        const clients = await User.find({ _id: { $in: Array.from(clientIds) } })
+            .select('firstName lastName email avatarUrl _id');
+
+        res.json(clients);
+    } catch (err) {
+        console.error("Error cargando clientes del chat:", err);
+        res.status(500).json({ message: 'Error cargando clientes' });
+    }
+});
+
 module.exports = router;

@@ -248,6 +248,130 @@
 .chat-input-area button { background: var(--primary-red); border: none; width: 40px; height: 40px; border-radius: 50%; color: white; cursor: pointer; display: flex; justify-content: center; align-items: center; }
 .chat-input-area button:disabled { background: #333; color: #666; cursor: not-allowed; }
 
+/* --- MODAL HEVY --- */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; justify-content: center; align-items: center; }
+.modal-content { background: #111; width: 90%; max-width: 500px; height: 80vh; border-radius: 16px; padding: 20px; border: 1px solid #333; display: flex; flex-direction: column; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-header h3 { margin: 0; color: white; }
+
+.exercise-db-list { overflow-y: auto; flex: 1; }
+.db-exercise-item { display: flex; align-items: center; gap: 15px; padding: 15px; border-bottom: 1px solid #222; cursor: pointer; transition: 0.2s; }
+.db-exercise-item:hover { background: #1a1a1a; }
+.circle-icon { width: 40px; height: 40px; border-radius: 50%; background: #222; color: white; display: flex; justify-content: center; align-items: center; font-weight: bold; }
+.db-exercise-item h4 { margin: 0; color: white; font-size: 14px; }
+.db-exercise-item span { color: #666; font-size: 12px; }
+
+/* --- CONSTRUCTOR HEVY --- */
+.empty-state-builder { border: 2px dashed #333; border-radius: 12px; padding: 40px; text-align: center; color: #666; cursor: pointer; transition: 0.2s; }
+.empty-state-builder:hover { border-color: #E50914; color: #E50914; }
+.builder-list { margin: 20px 0; }
+.builder-item { background: #1a1a1a; padding: 15px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #333; }
+.builder-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 8px; }
+.builder-header h4 { margin: 0; color: var(--primary-red); font-size: 14px; }
+.builder-row { display: flex; gap: 10px; }
+.input-group-label { flex: 1; }
+.input-group-label label { display: block; color: #666; font-size: 10px; margin-bottom: 4px; text-align: center; }
+
+/* =========================================
+   CONSTRUCTOR DE RUTINA (ESTILO HEVY MEJORADO)
+   ========================================= */
+
+/* Caja vacía para empezar */
+.empty-state-builder { 
+    border: 2px dashed #333; 
+    border-radius: 16px; 
+    padding: 40px; 
+    text-align: center; 
+    color: #666; 
+    cursor: pointer; 
+    transition: 0.2s; 
+    background: rgba(255,255,255,0.02);
+}
+.empty-state-builder:hover { 
+    border-color: var(--primary-red); 
+    color: var(--primary-red); 
+    background: rgba(229, 9, 20, 0.05);
+}
+
+/* Lista de tarjetas en el constructor */
+.builder-list { 
+    margin: 25px 0; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 20px; 
+}
+
+/* Tarjeta individual de ejercicio */
+.builder-item { 
+    background: #161616; /* Fondo tarjeta */
+    padding: 20px; 
+    border-radius: 16px; 
+    border: 1px solid #333; 
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+/* Cabecera de la tarjeta (Nombre y borrar) */
+.builder-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 20px; 
+    padding-bottom: 12px; 
+    border-bottom: 1px solid #2a2a2a; 
+}
+.builder-header h4 { 
+    margin: 0; 
+    color: #fff; 
+    font-size: 16px; 
+    font-weight: 600; 
+}
+
+/* Fila de Inputs (Sets y Reps) */
+.builder-row { 
+    display: flex; 
+    gap: 20px; /* Espacio amplio entre cajas */
+}
+
+/* Grupo Label + Input */
+.input-group-label { 
+    flex: 1; /* Ocupar espacio igual */
+    display: flex; 
+    flex-direction: column; 
+}
+
+.input-group-label label { 
+    display: block; 
+    color: #888; 
+    font-size: 11px; 
+    margin-bottom: 8px; 
+    text-align: center; 
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+}
+
+/* --- EL CAMBIO IMPORTANTE: Inputs Grandes --- */
+/* Sobrescribimos .input-mini solo cuando está dentro del constructor */
+.builder-row .input-mini {
+    width: 100%;
+    height: 55px; /* Altura cómoda para clic */
+    background-color: #050505; /* Fondo muy oscuro */
+    border: 2px solid #2a2a2a;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 22px; /* Número grande */
+    font-weight: bold;
+    text-align: center;
+    padding: 0;
+    transition: all 0.2s ease;
+}
+
+.builder-row .input-mini:focus {
+    border-color: var(--primary-red);
+    background-color: #000;
+    box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.15); /* Resplandor rojo al escribir */
+}
+
 /* RESPONSIVE */
 @media (max-width: 768px) {
   .dashboard-main { flex-direction: column; }

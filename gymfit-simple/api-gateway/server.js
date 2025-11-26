@@ -23,19 +23,15 @@ app.get('/', (req, res) => {
 // 4. Configurar Proxies
 
 // --- AUTH SERVICE & CHAT (Todo va al puerto 3001) ---
-app.use(['/api/v1/auth', '/api/v1/chat'], createProxyMiddleware({
+app.use(['/api/v1/auth', '/api/v1/chat', '/api/v1/clients'], createProxyMiddleware({
     target: AUTH_SERVICE_URL,
     changeOrigin: true,
-    pathRewrite: {
-        // No necesitamos reescribir nada, las rutas coinciden
-    },
     onProxyReq: (proxyReq, req, res) => {
-        // Log opcional para ver que está pasando
-        // console.log(`[Proxy] ${req.method} ${req.path} -> ${AUTH_SERVICE_URL}`);
+       // console.log(`[Proxy Auth Group] ...`);
     },
     onError: (err, req, res) => {
-        console.error('[Proxy Error Auth/Chat]', err);
-        res.status(500).send('Error de conexión con Auth/Chat Service');
+        console.error('[Proxy Error Auth Group]', err);
+        res.status(500).send('Error de conexión');
     }
 }));
 

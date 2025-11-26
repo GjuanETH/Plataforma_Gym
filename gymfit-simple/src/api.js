@@ -2,7 +2,6 @@ import axios from 'axios';
 
 // --- CONFIGURACIÓN CENTRAL ---
 // Apuntamos a la raíz del API Gateway.
-// El Gateway se encarga de redirigir a /auth o /training según el prefijo.
 const API_GATEWAY_URL = 'http://localhost:8080/api/v1';
 
 const api = axios.create({
@@ -25,14 +24,12 @@ api.interceptors.request.use((config) => {
 });
 
 export const authService = {
-    // LOGIN (Microservicio Auth)
+    // LOGIN
     login: async (email, password) => {
         try {
-            // POST http://localhost:8080/api/v1/auth/login
             const response = await api.post('/auth/login', { email, password });
             if (response.data.token) {
                 localStorage.setItem('gymfit_token', response.data.token);
-                // Guardamos datos básicos del usuario
                 localStorage.setItem('gymfit_user', JSON.stringify({
                     userId: response.data.userId,
                     role: response.data.role,
@@ -46,7 +43,7 @@ export const authService = {
         }
     },
 
-    // REGISTRO (Microservicio Auth)
+    // REGISTRO
     register: async (userData) => {
         try {
             const response = await api.post('/auth/register', userData);
@@ -65,10 +62,11 @@ export const authService = {
         }
     },
 
+    // LOGOUT
     logout: () => {
         localStorage.removeItem('gymfit_token');
         localStorage.removeItem('gymfit_user');
-    }, // <--- ¡AQUÍ ESTABA EL ERROR! Faltaba esta coma
+    },
 
     // ACTUALIZAR AVATAR
     updateAvatar: async (userId, avatarUrl) => {
@@ -83,10 +81,9 @@ export const authService = {
 };
 
 export const trainingService = {
-    // CREAR RUTINA (Microservicio Training)
+    // CREAR RUTINA
     createRoutine: async (routineData) => {
         try {
-            // POST http://localhost:8080/api/v1/training
             const response = await api.post('/training', routineData);
             return response.data;
         } catch (error) {
@@ -95,10 +92,9 @@ export const trainingService = {
         }
     },
 
-    // OBTENER RUTINAS DE UN CLIENTE
+    // OBTENER RUTINAS
     getClientRoutines: async (clientId) => {
         try {
-            // GET http://localhost:8080/api/v1/training/client/{clientId}
             const response = await api.get(`/training/client/${clientId}`);
             return response.data;
         } catch (error) {
@@ -110,7 +106,6 @@ export const trainingService = {
     // ELIMINAR RUTINA
     deleteRoutine: async (routineId) => {
         try {
-            // DELETE http://localhost:8080/api/v1/training/{routineId}
             const response = await api.delete(`/training/${routineId}`);
             return response.data;
         } catch (error) {
@@ -142,13 +137,10 @@ export const trainingService = {
     }
 };
 
-
 export const chatService = {
-    // Obtener lista de entrenadores
+    // Obtener lista de entrenadores (Para clientes)
     getTrainers: async () => {
         try {
-            // Ajusta la URL base si pusiste el chat en otro microservicio
-            // Asumimos que está en el Gateway general bajo /chat
             const response = await api.get('/chat/trainers');
             return response.data;
         } catch (error) {
@@ -157,7 +149,7 @@ export const chatService = {
         }
     },
 
-    // Obtener historial de chat con una persona
+    // Obtener historial de chat
     getChatHistory: async (myId, otherId) => {
         try {
             const response = await api.get(`/chat/history/${myId}/${otherId}`);
@@ -179,6 +171,7 @@ export const chatService = {
         }
     },
 
+    // Obtener mis clientes del chat (Para entrenadores)
     getMyClients: async (trainerId) => {
         try {
             const response = await api.get(`/chat/my-clients/${trainerId}`);
@@ -188,5 +181,47 @@ export const chatService = {
             return [];
         }
     },
-    // ----------------------------
+};
+
+export const clientService = {
+    // Entrenador envía solicitud
+    sendRequest: async (trainerId, clientId) => {
+        try {
+            const res = await api.post('/clients/request', { trainerId, clientId });
+            return res.data;
+        } catch (error) {
+            console.error("Error enviando solicitud:", error);
+            throw error.response ? error.response.data : {message: 'Error de conexión'};
+        }
+    },
+    // Cliente ve solicitudes pendientes
+    getPendingRequests: async (clientId) => {
+        try {
+            const res = await api.get(`/clients/pending/${clientId}`);
+            return res.data;
+        } catch (error) {
+            console.error("Error obteniendo solicitudes pendientes:", error);
+            return [];
+        }
+    },
+    // Cliente responde (status: 'accepted' | 'rejected')
+    respondRequest: async (requestId, status) => {
+        try {
+            const res = await api.put('/clients/respond', { requestId, status });
+            return res.data;
+        } catch (error) {
+            console.error("Error respondiendo solicitud:", error);
+            throw error.response ? error.response.data : {message: 'Error de conexión'};
+        }
+    },
+    // Entrenador ve sus clientes vinculados
+    getMyClientsList: async (trainerId) => {
+        try {
+            const res = await api.get(`/clients/my-list/${trainerId}`);
+            return res.data;
+        } catch (error) {
+            console.error("Error obteniendo lista de clientes:", error);
+            return [];
+        }
+    }
 };

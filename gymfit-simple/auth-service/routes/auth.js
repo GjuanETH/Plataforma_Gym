@@ -57,4 +57,15 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.put('/update-avatar', async (req, res) => {
+  const { userId, avatarUrl } = req.body;
+  try {
+    const user = await User.findByIdAndUpdate(userId, { avatarUrl }, { new: true });
+    res.json({ success: true, avatarUrl: user.avatarUrl });
+  } catch (err) {
+    res.status(500).json({ message: 'Error actualizando imagen' });
+  }
+});
+
+
 module.exports = router;

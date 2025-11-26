@@ -68,6 +68,17 @@ export const authService = {
     logout: () => {
         localStorage.removeItem('gymfit_token');
         localStorage.removeItem('gymfit_user');
+    }, // <--- ¡AQUÍ ESTABA EL ERROR! Faltaba esta coma
+
+    // ACTUALIZAR AVATAR
+    updateAvatar: async (userId, avatarUrl) => {
+        try {
+            const response = await api.put('/auth/update-avatar', { userId, avatarUrl });
+            return response.data;
+        } catch (error) {
+            console.error("Error actualizando avatar:", error);
+            throw error;
+        }
     }
 };
 

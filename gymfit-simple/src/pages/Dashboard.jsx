@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { trainingService, chatService } from '../api';
+import { trainingService, chatService, authService } from '../api'; // Importamos authService también
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { User, Activity, Dumbbell, LogOut, Calendar, Save, Edit3, Flame, Camera, X, Check, Copy, Trash2, PlusCircle, Search, MessageSquare, Send, Users, ChevronLeft } from 'lucide-react';
 import './Dashboard.css';
@@ -30,6 +30,8 @@ export default function Dashboard({ user, onLogout }) {
     const [isEditingBio, setIsEditingBio] = useState(false);
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [displayName, setDisplayName] = useState(() => localStorage.getItem(`gymfit_custom_name_${user.userId}`) || (user.firstName + ' ' + (user.lastName || '')));
+    
+    // Intentamos cargar avatar de localStorage, si no, puede ser null
     const [avatarUrl, setAvatarUrl] = useState(() => localStorage.getItem(`gymfit_avatar_${user.userId}`) || null);
     const [uploadingImg, setLoadingImg] = useState(false);
 
@@ -126,11 +128,22 @@ export default function Dashboard({ user, onLogout }) {
         const formData = new FormData();
         formData.append('image', file);
         try {
+            // 1. Subir a ImgBB
             const res = await fetch(`https://api.imgbb.com/1/upload?key=${API_KEY_IMGBB}`, { method: 'POST', body: formData });
             const data = await res.json();
+            
             if (data.success) { 
-                setAvatarUrl(data.data.url); 
-                localStorage.setItem(`gymfit_avatar_${user.userId}`, data.data.url); 
+                const newUrl = data.data.url;
+                setAvatarUrl(newUrl); 
+                // Guardar en localStorage para rapidez local
+                localStorage.setItem(`gymfit_avatar_${user.userId}`, newUrl); 
+                
+                // 2. Guardar en Base de Datos (para que otros usuarios me vean)
+                try {
+                    await authService.updateAvatar(user.userId, newUrl);
+                } catch(dbErr) {
+                    console.error("No se pudo guardar en BD, solo local", dbErr);
+                }
             }
         } catch (err) { console.error(err); } finally { setLoadingImg(false); }
     };
@@ -400,7 +413,13 @@ export default function Dashboard({ user, onLogout }) {
                                     <div className="trainers-grid">
                                         {trainersList.length === 0 ? <p>No hay entrenadores disponibles.</p> : trainersList.map(trainer => (
                                             <div key={trainer._id} className="trainer-card">
-                                                <div className="trainer-avatar-placeholder">{trainer.firstName?.[0]}</div>
+                                                {/* FOTO DE ENTRENADOR DINÁMICA */}
+                                                {trainer.avatarUrl ? (
+                                                    <img src={trainer.avatarUrl} alt="Trainer" className="trainer-avatar-img" style={{width:'60px', height:'60px', borderRadius:'50%', objectFit:'cover', margin:'0 auto 15px', display:'block', border: '2px solid #E50914'}} />
+                                                ) : (
+                                                    <div className="trainer-avatar-placeholder">{trainer.firstName?.[0]}</div>
+                                                )}
+                                                
                                                 <h3>{trainer.firstName} {trainer.lastName}</h3>
                                                 <p className="trainer-email">{trainer.email}</p>
                                                 <button className="btn-primary" onClick={() => handleSelectTrainer(trainer)}>

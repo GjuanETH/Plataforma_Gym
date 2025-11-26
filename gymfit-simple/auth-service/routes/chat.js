@@ -13,7 +13,7 @@ const User = mongoose.model('User');
 // 1. OBTENER TODOS LOS ENTRENADORES
 router.get('/trainers', async (req, res) => {
     try {
-        const trainers = await User.find({ role: 'Trainer' }).select('firstName lastName email _id');
+        const trainers = await User.find({ role: 'Trainer' }).select('firstName lastName email _id avatarUrl');
         res.json(trainers);
     } catch (err) {
         console.error("Error en /chat/trainers:", err);

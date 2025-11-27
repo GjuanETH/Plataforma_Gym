@@ -53,7 +53,6 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
         chatService.getChatHistory(user.userId, otherUserId).then(msgs => setChatMessages(msgs));
     }, [user.userId]);
 
-    // ARREGLO DE SCROLL AUTOMÁTICO
     useEffect(() => {
         const timeoutId = setTimeout(() => {
             if (contentRef.current) {
@@ -61,15 +60,12 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
             }
             window.scrollTo(0, 0);
         }, 0); 
-
         return () => clearTimeout(timeoutId);
     }, [activeTab, selectedChatUser]);
 
-    // Lógica Efectos Zen
     useEffect(() => {
         const audio = audioRef.current;
         document.body.classList.toggle('zen-mode-active', isZenMode);
-
         if (audio) {
             if (isZenMode) {
                 audio.volume = 0.4;
@@ -86,7 +82,6 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
         };
     }, [isZenMode]);
 
-    // useEffect Principal
     useEffect(() => {
         setBio(localStorage.getItem(`gymfit_bio_${user.userId}`) || (user.role === 'Trainer' ? "Entrenador certificado." : "Atleta en proceso"));
         setDisplayName(localStorage.getItem(`gymfit_custom_name_${user.userId}`) || user.firstName);
@@ -204,8 +199,25 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
         setRealStats({ totalSessions, totalKg, currentStreak, weeklyActivity: orderedChartData, historyData, photos, radarData, personalRecords, activityDates });
     };
 
+    // --- CORRECCIÓN AQUÍ: ELIMINA LA SOLICITUD DE LA LISTA VISUAL ---
     const handleRespondRequest = async (reqId, status) => {
-        try { await clientService.respondRequest(reqId, status); alert(status === 'accepted' ? "¡Aceptado!" : "Rechazado"); } catch (err) { alert("Error"); }
+        try { 
+            await clientService.respondRequest(reqId, status); 
+            
+            // Actualizamos el estado para que desaparezca la tarjeta
+            setPendingRequests(prev => prev.filter(req => req._id !== reqId));
+
+            // Opcional: Recargar lista de entrenadores si aceptó
+            if(status === 'accepted') {
+                chatService.getTrainers().then(data => setTrainersList(data));
+                alert("¡Entrenador aceptado!");
+            } else {
+                alert("Solicitud rechazada");
+            }
+        } catch (err) { 
+            console.error(err);
+            alert("Error al procesar la solicitud"); 
+        }
     };
 
     const refreshStats = () => trainingService.getClientHistory(user.userId).then(logs => calculateRealStats(logs));

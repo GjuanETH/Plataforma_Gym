@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Activity, MessageSquare, User, LogOut, Package, ShoppingBag } from 'lucide-react';
+import { LayoutDashboard, Activity, MessageSquare, User, LogOut, Package, Users } from 'lucide-react';
 
 export default function Sidebar({ user, activeTab, setActiveTab, onLogout, displayName, avatarUrl, getInitials, setAvatarUrl, onNavigate }) {
     
@@ -34,8 +34,10 @@ export default function Sidebar({ user, activeTab, setActiveTab, onLogout, displ
 
             {/* Menú de Navegación */}
             <nav className="sidebar-nav">
+                {/* CAMBIO AQUÍ: Lógica para cambiar texto e icono según el rol */}
                 <button className={`nav-item ${activeTab === 'routines' ? 'active' : ''}`} onClick={() => handleTabClick('routines')}>
-                    <LayoutDashboard size={20} /> Mis Rutinas
+                    {user.role === 'Trainer' ? <Users size={20} /> : <LayoutDashboard size={20} />}
+                    {user.role === 'Trainer' ? ' Gestión Clientes' : ' Mis Rutinas'}
                 </button>
                 
                 {user.role === 'Client' && (
@@ -44,8 +46,6 @@ export default function Sidebar({ user, activeTab, setActiveTab, onLogout, displ
                             <Activity size={20} /> Estadísticas
                         </button>
                         
-                        {/* Botón Ir a Tienda ELIMINADO de aquí (va al NavBar superior) */}
-
                         <button className={`nav-item ${activeTab === 'orders' ? 'active' : ''}`} onClick={() => handleTabClick('orders')}>
                             <Package size={20} /> Mis Pedidos
                         </button>

@@ -3,6 +3,7 @@ import { authService, trainingService, chatService, clientService } from '../api
 import { User } from 'lucide-react';
 import './Dashboard.css';
 
+// Las rutas son relativas a src/pages/
 import Sidebar from '../components/dashboard/Sidebar';
 import ProfileView from '../components/dashboard/ProfileView';
 import StatsView from '../components/dashboard/StatsView';
@@ -36,10 +37,12 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
     const [newMessage, setNewMessage] = useState('');
 
     useEffect(() => {
+        // Carga de datos de perfil desde localStorage
         setBio(localStorage.getItem(`gymfit_bio_${user.userId}`) || (user.role === 'Trainer' ? "Entrenador certificado." : "Atleta en proceso"));
         setDisplayName(localStorage.getItem(`gymfit_custom_name_${user.userId}`) || user.firstName);
         setAvatarUrl(localStorage.getItem(`gymfit_avatar_${user.userId}`));
 
+        // Carga de datos de microservicios
         if (user.role === 'Client') {
             loadRoutines(); 
             trainingService.getClientHistory(user.userId).then(logs => calculateRealStats(logs));
@@ -152,7 +155,7 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
         const personalRecords = Object.keys(prMap).map(k => ({ name: k.charAt(0).toUpperCase() + k.slice(1), weight: prMap[k] })).sort((a,b)=>b.weight-a.weight).slice(0,5);
 
         const historyData = logs.slice(0, 20).reverse().map(l => ({ name: l.exerciseName.substring(0, 4), kg: l.weightUsed }));
-        const photos = logs.filter(l => l.photoUrl).map(l => ({ url: l.photoUrl, date: l.date || l.createdAt })).sort((a,b)=>new Date(b.date)-new Date(a.date));
+        const photos = logs.filter(l => l.photoUrl).map(l => ({ url: l.photoUrl, date: l.date || log.createdAt })).sort((a,b)=>new Date(b.date)-new Date(a.date));
 
         setRealStats({ totalSessions, totalKg, currentStreak, weeklyActivity: orderedChartData, historyData, photos, radarData, personalRecords, activityDates }); 
     };

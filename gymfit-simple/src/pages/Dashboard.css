@@ -1,5 +1,5 @@
 /* =========================================
-   1. VARIABLES & RESET (TEMA PREMIUM)
+    1. VARIABLES & RESET (TEMA PREMIUM)
    ========================================= */
 :root {
     --primary: #E50914;
@@ -10,13 +10,13 @@
     --border-subtle: #2a2a2a; /* Bordes sutiles */
     --text-main: #f5f5f5;
     --text-muted: #888;
-    
+
     --success: #00E676; /* Verde Neón */
     --danger: #FF1744;
-    
+
     --radius-lg: 16px;
     --radius-md: 12px;
-    
+
     --shadow-card: 0 8px 24px rgba(0,0,0,0.4);
     --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
@@ -38,16 +38,19 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
 
 /* =========================================
-   2. LAYOUT GENERAL
+    2. LAYOUT GENERAL
    ========================================= */
 .dashboard-layout { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .dashboard-main { display: flex; flex: 1; overflow: hidden; margin-top: 70px; }
 
 .dashboard-content-area {
     flex: 1;
-    padding: 40px;
+    padding: 40px; /* OJO: Este padding es el que chocaba con el calc() anterior */
     overflow-y: auto;
     background: radial-gradient(circle at top right, #1a0505 0%, var(--bg-body) 60%);
+    height: 100%; 
+    min-height: auto;
+    position: relative; /* Necesario para posicionamientos absolutos internos */
 }
 
 .page-title {
@@ -61,7 +64,7 @@ body {
 @keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
 /* =========================================
-   3. SIDEBAR
+    3. SIDEBAR
    ========================================= */
 .dashboard-sidebar {
     width: 270px; background: #080808;
@@ -97,13 +100,13 @@ body {
     transition: all 0.2s ease; text-align: left; width: 100%;
 }
 .nav-item:hover { color: white; background: rgba(255,255,255,0.05); }
-.nav-item.active { 
+.nav-item.active {
     background: linear-gradient(90deg, rgba(229, 9, 20, 0.15), transparent);
     color: var(--primary); border-left: 3px solid var(--primary); border-radius: 4px;
 }
 
 /* =========================================
-   4. COMPONENTES UI (Inputs & Buttons)
+    4. COMPONENTES UI (Inputs & Buttons)
    ========================================= */
 .input-field {
     width: 100%; padding: 14px 18px;
@@ -113,9 +116,9 @@ body {
     color: white; font-size: 15px;
     outline: none; transition: 0.3s;
 }
-.input-field:focus { 
-    border-color: var(--primary); 
-    box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1); 
+.input-field:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1);
     background: #000;
 }
 
@@ -127,10 +130,10 @@ body {
     display: flex; justify-content: center; align-items: center; gap: 10px;
     box-shadow: 0 4px 15px rgba(229, 9, 20, 0.3);
 }
-.btn-primary:hover { 
-    background: #ff1f2b; 
-    transform: translateY(-2px); 
-    box-shadow: 0 8px 20px rgba(229, 9, 20, 0.5); 
+.btn-primary:hover {
+    background: #ff1f2b;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(229, 9, 20, 0.5);
 }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
@@ -144,14 +147,14 @@ body {
 .btn-secondary:hover { border-color: #fff; background: rgba(255,255,255,0.05); }
 
 .btn-icon {
-    background: transparent; border: none; cursor: pointer; 
-    color: var(--text-muted); padding: 8px; border-radius: 50%; 
+    background: transparent; border: none; cursor: pointer;
+    color: var(--text-muted); padding: 8px; border-radius: 50%;
     transition: 0.2s; display: flex; align-items: center; justify-content: center;
 }
 .btn-icon:hover { background: rgba(255,255,255,0.1); color: white; }
 
 /* =========================================
-   5. TARJETAS DE RUTINA (DISEÑO MEJORADO V2)
+    5. TARJETAS DE RUTINA
    ========================================= */
 .routines-grid {
     display: grid;
@@ -198,7 +201,6 @@ body {
     letter-spacing: 0.5px;
 }
 
-/* Botón de borrar sutil */
 .routine-header .btn-icon {
     color: #444; padding: 5px; margin-left: 10px;
 }
@@ -229,7 +231,6 @@ body {
     position: absolute; left: 0; font-weight: bold;
 }
 
-/* Botón Empezar Estilo Outline */
 .routine-card .btn-primary {
     margin-top: auto;
     background: transparent;
@@ -245,17 +246,17 @@ body {
 }
 
 /* =========================================
-   6. MODO CONSTRUCTOR (CREAR RUTINA)
+    6. MODO CONSTRUCTOR (CREAR RUTINA)
    ========================================= */
 .routine-creator-box, .routine-manager-box {
     background: #111; border: 1px solid #222;
     border-radius: var(--radius-lg); padding: 30px;
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-card);
 }
 
-.empty-state-builder { 
-    border: 2px dashed #333; border-radius: var(--radius-md); 
-    padding: 50px; text-align: center; color: #666; cursor: pointer; 
+.empty-state-builder {
+    border: 2px dashed #333; border-radius: var(--radius-md);
+    padding: 50px; text-align: center; color: #666; cursor: pointer;
     transition: 0.3s; background: rgba(255,255,255,0.01);
 }
 .empty-state-builder:hover { border-color: var(--primary); color: var(--primary); background: rgba(229, 9, 20, 0.05); }
@@ -269,7 +270,7 @@ body {
 .input-group-label .input-mini:focus { border-color: var(--primary); }
 
 /* =========================================
-   7. MODO SESIÓN ACTIVA (WORKOUT PLAYER)
+    7. MODO SESIÓN ACTIVA
    ========================================= */
 .workout-session-overlay {
     position: fixed; top: 70px; left: 0; width: 100%; height: calc(100vh - 70px);
@@ -296,25 +297,23 @@ body {
 .workout-card-header h3 { margin: 0; color: var(--primary); font-size: 18px; font-weight: 700; }
 .rest-selector { background: #0a0a0a; border: 1px solid #333; color: #aaa; padding: 5px 10px; border-radius: 8px; font-size: 12px; outline: none; cursor: pointer; }
 
-/* GRID DE SERIES (ARREGLADO) */
+/* GRID DE SERIES */
 .set-grid-header {
     display: grid;
-    /* Definimos tamaños exactos para que no se mueva nada */
-    /* Estructura:  #  |  Historial (Flexible) |  Kg  |  Reps  |  Check */
-    grid-template-columns: 30px 1fr 75px 75px 80px; 
+    grid-template-columns: 30px 1fr 75px 75px 80px;
     gap: 12px;
     padding: 10px 20px;
     background: #111;
     border-bottom: 1px solid #2a2a2a;
     font-size: 11px; font-weight: 700; color: #555; letter-spacing: 1px; text-transform: uppercase; text-align: center;
 }
-.set-grid-header span:nth-child(2) { text-align: left; padding-left: 5px; } 
+.set-grid-header span:nth-child(2) { text-align: left; padding-left: 5px; }
 
 .sets-container { padding: 10px 15px; background: #0e0e0e; }
 
 .set-row {
     display: grid;
-    grid-template-columns: 30px 1fr 75px 75px 80px; /* MISMA ESTRUCTURA QUE EL HEADER */
+    grid-template-columns: 30px 1fr 75px 75px 80px;
     gap: 12px;
     align-items: center;
     margin-bottom: 8px;
@@ -329,17 +328,17 @@ body {
 .set-row.completed .prev-data-col { opacity: 0.2; }
 
 .set-num-col { display: flex; justify-content: center; }
-.set-number { 
-    width: 28px; height: 28px; border-radius: 50%; 
-    background: #1a1a1a; color: #666; font-size: 13px; font-weight: bold; 
-    display: flex; justify-content: center; align-items: center; 
+.set-number {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #1a1a1a; color: #666; font-size: 13px; font-weight: bold;
+    display: flex; justify-content: center; align-items: center;
 }
 
 .prev-data-col { display: flex; align-items: center; padding-left: 5px; }
 .prev-badge { color: #555; font-size: 13px; font-weight: 500; font-family: monospace; }
 
 .workout-input {
-    width: 100%; height: 45px; background: #000; 
+    width: 100%; height: 45px; background: #000;
     border: 1px solid #2a2a2a; border-radius: 10px;
     color: white; font-size: 18px; font-weight: 700; text-align: center; outline: none;
 }
@@ -348,11 +347,11 @@ body {
 /* Botones Acciones */
 .set-actions-col { display: flex; justify-content: center; align-items: center; gap: 8px; }
 
-.btn-check-set { 
-    width: 38px; height: 38px; border-radius: 10px; 
-    border: 2px solid #2a2a2a; background: transparent; color: #333; 
-    display: flex; align-items: center; justify-content: center; 
-    cursor: pointer; transition: 0.2s; 
+.btn-check-set {
+    width: 38px; height: 38px; border-radius: 10px;
+    border: 2px solid #2a2a2a; background: transparent; color: #333;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: 0.2s;
 }
 .btn-check-set:hover { border-color: #555; color: #555; }
 .btn-check-set.active { background: var(--success); border-color: var(--success); color: #000; }
@@ -372,7 +371,7 @@ body {
 .rest-timer-floating { position: absolute; top: -60px; left: 50%; transform: translateX(-50%); background: var(--primary); color: white; padding: 10px 25px; border-radius: 30px; font-weight: bold; box-shadow: 0 5px 20px rgba(229, 9, 20, 0.4); display: flex; align-items: center; gap: 10px; animation: popIn 0.3s ease; }
 
 /* =========================================
-   8. MODALES (BUSCADOR Y RESUMEN)
+    8. MODALES
    ========================================= */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); z-index: 3000; display: flex; justify-content: center; align-items: center; }
 .modal-content { background: #111; width: 550px; max-width: 95%; max-height: 85vh; border-radius: 24px; border: 1px solid #222; box-shadow: 0 25px 50px rgba(0,0,0,0.6); display: flex; flex-direction: column; overflow: hidden; }
@@ -382,31 +381,27 @@ body {
 .db-exercise-item:hover { background: #1a1a1a; }
 .circle-icon { width: 42px; height: 42px; border-radius: 50%; background: #222; color: #fff; display: flex; justify-content: center; align-items: center; font-weight: bold; }
 
-/* RESUMEN */
 .summary-content { padding: 30px; text-align: center; overflow-y: auto; }
 .summary-medal { font-size: 60px; margin-bottom: 15px; display: block; }
 .summary-stats-row { display: flex; justify-content: center; gap: 20px; margin: 20px 0; }
 .summary-stat { background: #1a1a1a; padding: 15px 20px; border-radius: 12px; border: 1px solid #2a2a2a; min-width: 100px; }
 .summary-stat h4 { margin: 0; color: var(--primary); font-size: 24px; }
 .muscle-badge { background: #222; color: #ddd; padding: 6px 12px; border-radius: 20px; font-size: 12px; border: 1px solid #333; }
-
-/* --- SECCIÓN FOTO RESULTADO --- */
 .workout-photo-section { background: #161616; padding: 20px; border-radius: 16px; margin: 20px 0; border: 1px dashed #333; }
 .photo-preview-container { text-align: center; }
 .photo-preview-img { width: 100%; max-height: 250px; object-fit: cover; border-radius: 12px; border: 2px solid var(--primary); box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
 
 /* =========================================
-   9. PERFIL (REDISEÑADO)
+    9. PERFIL
    ========================================= */
 .profile-view { max-width: 1000px; margin: 0 auto; }
-.profile-header-card { position: relative; background: var(--card-bg); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); overflow: hidden; margin-bottom: 25px; }
+.profile-header-card { position: relative; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); overflow: hidden; margin-bottom: 25px; }
 .profile-cover { height: 160px; background: linear-gradient(135deg, #E50914 0%, #600206 100%); }
 .profile-content { padding: 0 40px 30px; display: flex; align-items: flex-end; margin-top: -60px; gap: 25px; }
 
-/* Avatar Grande arreglado */
 .profile-avatar-wrapper { position: relative; width: 130px; height: 130px; flex-shrink: 0; z-index: 10; }
-.profile-img-real, .profile-avatar-xl { width: 100%; height: 100%; border-radius: 50%; border: 5px solid var(--card-bg); background: #111; object-fit: cover; display: flex; justify-content: center; align-items: center; font-size: 40px; color: white; font-weight: bold; }
-.avatar-edit-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; justify-content: center; align-items: center; opacity: 0; transition: 0.2s; cursor: pointer; border: 5px solid var(--card-bg); }
+.profile-img-real, .profile-avatar-xl { width: 100%; height: 100%; border-radius: 50%; border: 5px solid var(--bg-card); background: #111; object-fit: cover; display: flex; justify-content: center; align-items: center; font-size: 40px; color: white; font-weight: bold; }
+.avatar-edit-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; justify-content: center; align-items: center; opacity: 0; transition: 0.2s; cursor: pointer; border: 5px solid var(--bg-card); }
 .profile-avatar-wrapper:hover .avatar-edit-overlay { opacity: 1; }
 
 .profile-names { flex: 1; padding-bottom: 10px; }
@@ -415,19 +410,38 @@ body {
 .profile-actions { display: flex; gap: 10px; margin-bottom: 15px; }
 .btn-edit-profile { background: #222; color: white; border: 1px solid #444; padding: 10px 20px; border-radius: var(--radius-md); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
 .profile-grid-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; }
-.bio-card { background: var(--card-bg); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 25px; grid-column: span 2; }
+.bio-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 25px; grid-column: span 2; }
 .card-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
 .card-header-flex h3 { margin: 0; font-size: 18px; color: var(--primary); }
 .input-field-transparent { background: transparent; border: none; border-bottom: 2px solid var(--primary); color: white; font-size: 32px; font-weight: bold; width: 100%; outline: none; }
 
 /* =========================================
-   10. ENTRENADORES & CHAT
+    10. ENTRENADORES & CHAT (CORREGIDO)
    ========================================= */
 .trainers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 25px; }
-.trainer-card { background: var(--card-bg); padding: 30px 20px; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; align-items: center; text-align: center; transition: transform 0.3s, box-shadow 0.3s; }
+.trainer-card { background: var(--bg-card); padding: 30px 20px; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; align-items: center; text-align: center; transition: transform 0.3s, box-shadow 0.3s; }
 .trainer-card:hover { transform: translateY(-5px); border-color: #444; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
 .trainer-avatar-img, .trainer-avatar-placeholder { width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; object-fit: cover; border: 3px solid var(--primary); background: #222; display: flex; justify-content: center; align-items: center; font-size: 30px; font-weight: bold; color: white; }
-.chat-interface-container { background: #000; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); height: calc(100vh - 140px); display: flex; flex-direction: column; overflow: hidden; }
+
+.chat-interface-container {
+    background: #000;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+
+    /* --- CORRECCIÓN CLAVE --- */
+    /* Usamos 100% para llenar exactamente el área disponible dentro del dashboard */
+    /* Quitamos el calc(100vh - 160px) que causaba el desborde */
+    height: 100%; 
+    min-height: 500px; /* Evita que se aplaste demasiado en pantallas muy pequeñas */
+
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    /* Sombra para que destaque sobre el fondo */
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+
 .chat-header { padding: 15px 25px; background: #111; border-bottom: 1px solid #222; display: flex; gap: 15px; align-items: center; }
 .chat-messages-area { flex: 1; padding: 25px; background: #080808; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
 .message-bubble { padding: 12px 18px; border-radius: 18px; font-size: 15px; max-width: 75%; line-height: 1.5; }
@@ -437,24 +451,52 @@ body {
 .chat-input-area input { flex: 1; background: #1f1f1f; border: 1px solid #333; border-radius: 50px; padding: 12px 25px; color: white; outline: none; }
 .chat-input-area button { width: 45px; height: 45px; background: var(--primary); border: none; border-radius: 50%; color: white; cursor: pointer; display: flex; justify-content: center; align-items: center; }
 
+/* Botón volver y detalles */
+.btn-back {
+    background: rgba(255, 255, 255, 0.05); border: 1px solid #333; color: #ccc; display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: 0.2s;
+}
+.btn-back:hover { background: #222; color: white; border-color: #555; }
+
+.chat-user-info { display: flex; flex-direction: column; justify-content: center; }
+.chat-user-info h3 { margin: 0; font-size: 16px; color: white; font-weight: 700; }
+.online-badge { font-size: 11px; color: #00E676; display: flex; align-items: center; gap: 6px; margin-top: 2px; font-weight: 500; }
+.online-badge::before { content: ''; display: block; width: 6px; height: 6px; background-color: #00E676; border-radius: 50%; box-shadow: 0 0 6px rgba(0, 230, 118, 0.6); }
+.empty-chat { display: flex; height: 100%; align-items: center; justify-content: center; color: #555; font-size: 18px; font-weight: 500; }
+
 /* =========================================
-   11. RESPONSIVE
+    12. MODO ZEN
+   ========================================= */
+body.zen-mode-active { background-color: #000814 !important; transition: background-color 1s ease; }
+body.zen-mode-active .nav-item.active { --primary: #88BFFF; border-left: 3px solid var(--primary); color: var(--primary); background: rgba(136, 191, 255, 0.15); }
+.zen-mode-active .dashboard-content-area { background: radial-gradient(circle at top right, #001f3f 0%, #000814 60%); }
+.zen-mode-active .dashboard-sidebar { background: #000510; border-right-color: #001f3f; }
+
+/* =========================================
+    11. RESPONSIVE
    ========================================= */
 @media (max-width: 768px) {
     .dashboard-main { flex-direction: column; margin-top: 60px; }
     .dashboard-sidebar { width: 100%; height: auto; flex-direction: row; overflow-x: auto; padding: 15px; border-bottom: 1px solid #222; position: sticky; top: 60px; z-index: 100; background: #000; }
     .user-card { display: none; }
-    .dashboard-content-area { padding: 20px; }
+    
+    .dashboard-content-area { 
+        padding: 20px; /* Reducimos padding en móvil */
+        height: 100%; 
+        min-height: auto; 
+    }
+    
     .profile-content { flex-direction: column; text-align: center; align-items: center; margin-top: -70px; }
     .profile-avatar-wrapper { margin: 0; }
     .workout-session-overlay { padding: 15px 15px 120px 15px; top: 60px; height: calc(100vh - 60px); }
-    
-    /* Grid Ajustado para Móvil */
-    .set-grid-header, .set-row { 
-        grid-template-columns: 30px 1fr 60px 60px 60px; /* Ajuste móvil */
-        gap: 8px; padding: 10px 5px; 
-    }
-    .prev-data-col { font-size: 10px; } 
+
+    .set-grid-header, .set-row { grid-template-columns: 30px 1fr 60px 60px 60px; gap: 8px; padding: 10px 5px; }
+    .prev-data-col { font-size: 10px; }
     .workout-input { height: 40px; font-size: 16px; }
     .rest-timer-floating { bottom: 80px; top: auto; }
+
+    /* Fix para chat en celular */
+    .chat-interface-container {
+        /* En móvil forzamos una altura segura para que no se oculte tras el teclado/barra */
+        height: calc(100vh - 150px); 
+    }
 }

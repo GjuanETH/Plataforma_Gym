@@ -4,7 +4,35 @@ import {
     Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
     BarChart, Bar
 } from 'recharts';
-import { Camera, Trophy, Flame, Dumbbell, Activity, CalendarDays } from 'lucide-react';
+import { Camera, Trophy, Flame, Dumbbell, Activity, CalendarDays, Zap } from 'lucide-react';
+
+// Componente de Tooltip para el gráfico de barras (Volumen Semanal)
+const CustomBarTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+        return (
+            <div style={{ backgroundColor: '#111', border: '1px solid #E50914', borderRadius: '8px', padding: '10px', color: 'white', fontSize: '14px' }}>
+                <p className="label" style={{ fontWeight: 'bold' }}>{`Día ${label}`}</p>
+                <p className="intro" style={{ color: '#0f0' }}>{`Volumen: ${Math.round(payload[0].value)} kg`}</p>
+            </div>
+        );
+    }
+    return null;
+};
+
+// Componente de Tooltip para el gráfico de líneas (Tendencia de Fuerza)
+const CustomLineTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+        return (
+            <div style={{ backgroundColor: '#111', border: '1px solid #E50914', borderRadius: '8px', padding: '10px', color: 'white', fontSize: '14px' }}>
+                <p className="label" style={{ fontWeight: 'bold' }}>{`Sesión: ${payload[0].payload.exerciseName}`}</p>
+                <p className="intro" style={{ color: '#0f0' }}>{`Peso: ${payload[0].value} kg`}</p>
+                <p className="desc" style={{ color: '#aaa', fontSize: '12px' }}>{`Fecha: ${label}`}</p>
+            </div>
+        );
+    }
+    return null;
+};
+
 
 export default function StatsView({ realStats }) {
     const photos = realStats.photos || [];
@@ -15,7 +43,6 @@ export default function StatsView({ realStats }) {
         const today = new Date();
         
         // Creamos un Set para búsqueda ultra rápida. 
-        // Si realStats.activityDates está vacío, el mapa saldrá vacío (correcto).
         const activitySet = new Set(realStats.activityDates || []);
 
         // Generamos los últimos 100 días
@@ -24,36 +51,85 @@ export default function StatsView({ realStats }) {
             d.setDate(today.getDate() - i);
             const dateStr = d.toISOString().split('T')[0]; // "YYYY-MM-DD"
 
-            // LÓGICA PURA Y DURA: 
-            // ¿Existe esta fecha en tu historial? Sí -> Rojo. No -> Gris.
+            // La lógica para la intensidad del color podría ser más sofisticada, 
+            // pero mantenemos simple: activo vs inactivo
             const isActive = activitySet.has(dateStr);
-            const color = isActive ? '#E50914' : '#222'; // Rojo activo, gris inactivo
-            const opacity = isActive ? 1 : 0.3;
+            const color = isActive ? '#E50914' : '#222'; 
+            const opacity = isActive ? 1 : 0.4; // Menor opacidad para inactivo
 
             boxes.push(
                 <div key={i} title={`${dateStr}: ${isActive ? 'Entrenaste' : 'Descanso'}`} style={{
                     width: '12px', height: '12px', borderRadius: '3px', 
                     backgroundColor: color, opacity: opacity,
-                    transition: 'all 0.3s ease'
+                    transition: 'all 0.3s ease',
+                    boxShadow: isActive ? '0 0 5px rgba(229, 9, 20, 0.5)' : 'none',
                 }}></div>
             );
         }
         return boxes;
-    }, [realStats.activityDates]); // Solo se recalcula si cambian tus fechas de entreno
+    }, [realStats.activityDates]);
+
+    // Prepara los datos para la gráfica de tendencia de fuerza, usando la fecha completa
+    const forceTrendData = useMemo(() => {
+        // historyData contiene el nombre, peso (kg) y ahora usaremos el índice como ID temporal para XAxis
+        // En Dashboard.jsx, historyData es logs.slice(0, 20).reverse().map(l => ({ name: l.exerciseName.substring(0, 4), kg: l.weightUsed }));
+        // Lo modificaremos aquí para usar la fecha completa.
+        
+        // Nota: Asegúrate que historyData en Dashboard.jsx también devuelva la fecha real:
+        /* // En Dashboard.jsx:
+        const historyData = logs.slice(0, 20).reverse().map(l => ({ 
+            exerciseName: l.exerciseName, 
+            kg: l.weightUsed, 
+            date: new Date(l.date || l.createdAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+        }));
+        */
+        return (realStats.historyData || []).map((item, index) => ({
+            ...item,
+            id: index, // Usamos el índice como clave en el eje X para mantener el orden
+            date: item.date // Asumiendo que ahora date contiene la fecha formateada ('27/nov')
+        }));
+    }, [realStats.historyData]);
+
 
     return (
         <div className="fade-in" style={{paddingBottom: '50px'}}>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px'}}>
-                <h2 className="page-title" style={{marginBottom:0}}>Mi Rendimiento</h2>
+                <h2 className="page-title" style={{marginBottom:0, color:'#E50914'}}>Análisis de Rendimiento 📊</h2>
                 <div style={{fontSize:'12px', color:'#666'}}>Datos Reales</div>
             </div>
             
+            <style jsx="true">{`
+                .stat-card {
+                    background: #141414;
+                    padding: 25px;
+                    border-radius: 12px;
+                    border: 1px solid #222;
+                    color: white;
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+                }
+                .stat-card h3 {
+                    color: #E50914;
+                    font-size: 16px;
+                    margin-bottom: 15px;
+                }
+                .stat-card .stat-number {
+                    font-size: 36px;
+                    font-weight: 700;
+                    margin: 0;
+                    color: white;
+                }
+                .stats-grid > .stat-card.small {
+                    border-left: 5px solid #E50914;
+                    padding: 15px 25px;
+                }
+            `}</style>
+            
             {/* --- GRID DE TARJETAS PRINCIPALES --- */}
-            <div className="stats-grid" style={{marginBottom: '30px'}}>
+            <div className="stats-grid" style={{marginBottom: '30px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px'}}>
                 <div className="stat-card small">
                     <div style={{display:'flex', justifyContent:'space-between'}}>
                         <h3>Racha Actual</h3>
-                        <Flame color={realStats.currentStreak > 0 ? "#E50914" : "#666"} size={20}/>
+                        <Flame color={realStats.currentStreak > 0 ? "#FFD700" : "#666"} size={20}/>
                     </div>
                     <p className="stat-number">{realStats.currentStreak} <span style={{fontSize:'14px', color:'#888', fontWeight:'normal'}}>días</span></p>
                 </div>
@@ -100,7 +176,7 @@ export default function StatsView({ realStats }) {
                             <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
                             <XAxis dataKey="day" stroke="#666" tickLine={false} />
                             <YAxis stroke="#666" tickLine={false} tickFormatter={(value) => `${(value/1000).toFixed(0)}k`} />
-                            <Tooltip cursor={{fill: '#333', opacity: 0.2}} contentStyle={{backgroundColor:'#111', border:'1px solid #333', borderRadius:'8px'}} />
+                            <Tooltip cursor={{fill: '#333', opacity: 0.2}} content={<CustomBarTooltip />} />
                             <Bar dataKey="kg" fill="#E50914" radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
@@ -112,13 +188,24 @@ export default function StatsView({ realStats }) {
                 
                 {/* Tabla de Récords Reales */}
                 <div className="stat-card" style={{height: 'auto', minHeight: '300px'}}>
-                    <h3 style={{display:'flex', alignItems:'center', gap:'10px'}}><Trophy size={18} color="#FFD700"/> Personal Records</h3>
-                    <div style={{marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '10px'}}>
+                    <h3 style={{display:'flex', alignItems:'center', gap:'10px'}}><Trophy size={18} color="#FFD700"/> Récords Personales (PRs)</h3>
+                    <div style={{marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '8px'}}>
                         {realStats.personalRecords && realStats.personalRecords.length > 0 ? (
                             realStats.personalRecords.map((pr, idx) => (
-                                <div key={idx} style={{display:'flex', justifyContent:'space-between', padding:'10px', background:'#222', borderRadius:'8px', alignItems:'center'}}>
-                                    <span style={{color:'#ddd', fontSize:'14px'}}>{idx+1}. {pr.name}</span>
-                                    <span style={{color:'#E50914', fontWeight:'bold'}}>{pr.weight} kg</span>
+                                <div key={idx} style={{
+                                    display:'flex', 
+                                    justifyContent:'space-between', 
+                                    padding:'12px', 
+                                    background:'#222', 
+                                    borderRadius:'8px', 
+                                    alignItems:'center',
+                                    borderLeft: idx === 0 ? '4px solid #FFD700' : '4px solid #444',
+                                }}>
+                                    <span style={{color:'#ddd', fontSize:'15px', display:'flex', alignItems:'center', gap:'8px'}}>
+                                        {idx === 0 && <Zap size={16} color="#FFD700"/>}
+                                        {pr.name}
+                                    </span>
+                                    <span style={{color:'#E50914', fontWeight:'bold', fontSize:'16px'}}>{pr.weight} kg</span>
                                 </div>
                             ))
                         ) : (
@@ -129,16 +216,30 @@ export default function StatsView({ realStats }) {
                     </div>
                 </div>
 
-                {/* Gráfico Lineal de Progreso */}
+                {/* Gráfico Lineal de Progreso (Tendencia de Fuerza) */}
                 <div className="stat-card" style={{height: '300px'}}>
-                    <h3>Tendencia de Fuerza</h3>
+                    <h3>Tendencia de Fuerza (Últimas Sesiones)</h3>
                     <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={realStats.historyData}>
+                        <LineChart data={forceTrendData}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false}/>
-                            <XAxis dataKey="name" stroke="#666" tick={{fontSize: 10}}/>
-                            <YAxis hide domain={['dataMin', 'dataMax']}/>
-                            <Tooltip contentStyle={{backgroundColor:'#222', border:'none' }}/>
-                            <Line type="monotone" dataKey="kg" stroke="#fff" strokeWidth={2} dot={{r: 2, fill:'#E50914'}} activeDot={{r: 6}}/>
+                            {/* Mostramos el índice en el eje X para mantener el orden, pero usamos la fecha en el Tooltip */}
+                            <XAxis 
+                                dataKey="id" 
+                                stroke="#666" 
+                                tick={{fontSize: 10}} 
+                                tickFormatter={(value) => forceTrendData[value] ? forceTrendData[value].date : ''}
+                            />
+                            <YAxis stroke="#666" domain={['dataMin', 'dataMax']} tickFormatter={(value) => `${value}kg`} tickLine={false}/>
+                            {/* Usamos el CustomLineTooltip para mostrar el nombre del ejercicio y el peso */}
+                            <Tooltip content={<CustomLineTooltip />} />
+                            <Line 
+                                type="monotone" 
+                                dataKey="kg" 
+                                stroke="#E50914" 
+                                strokeWidth={2} 
+                                dot={{r: 3, fill:'#E50914', stroke:'#E50914', strokeWidth: 1}} 
+                                activeDot={{r: 6, fill:'#fff', stroke:'#E50914', strokeWidth: 2}}
+                            />
                         </LineChart>
                     </ResponsiveContainer>
                 </div>
@@ -147,7 +248,7 @@ export default function StatsView({ realStats }) {
             {/* --- MAPA DE CALOR REAL (Constancia) --- */}
             <div className="stat-card" style={{marginBottom: '40px'}}>
                 <h3 style={{display:'flex', alignItems:'center', gap:'10px', marginBottom:'15px'}}>
-                    <CalendarDays size={18} color="#888"/> Constancia Real
+                    <CalendarDays size={18} color="#888"/> Constancia Real (Últimos 101 Días)
                 </h3>
                 <div style={{display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'center'}}>
                     {heatmapBoxes}
@@ -155,7 +256,7 @@ export default function StatsView({ realStats }) {
             </div>
 
             {/* --- GALERÍA DE PROGRESO --- */}
-            <h3 style={{color: 'white', marginBottom: '20px', display:'flex', alignItems:'center', gap:'10px'}}>
+            <h3 style={{color: 'white', marginBottom: '20px', display:'flex', alignItems:'center', gap:'10px', color:'#E50914'}}>
                 <Camera color="#E50914"/> Galería de Resultados
             </h3>
             
@@ -164,7 +265,8 @@ export default function StatsView({ realStats }) {
                     {photos.map((photo, idx) => (
                         <div key={idx} className="photo-card fade-in" style={{
                             position: 'relative', borderRadius: '12px', overflow: 'hidden', aspectRatio: '1/1', 
-                            border: '1px solid #333', cursor:'pointer', transition: 'transform 0.2s'
+                            border: '1px solid #333', cursor:'pointer', transition: 'transform 0.2s',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
                         onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}

@@ -17,7 +17,7 @@ export default function ProfileView({
     saveBio,
     getInitials,
     uploadingImg,
-    onLogout // RECIBIMOS onLogout
+    onLogout // Función para cerrar sesión
 }) {
 
     return (
@@ -72,7 +72,7 @@ export default function ProfileView({
                         
                         <p style={{color:'#888', margin:'0 0 15px 0'}}>{user.role === 'Trainer' ? 'Entrenador' : 'Cliente'} | ID: {user.userId}</p>
 
-                        {/* Botón de Logout */}
+                        {/* BOTÓN DE LOGOUT (CERRAR SESIÓN) */}
                         <button 
                             onClick={onLogout} 
                             style={{padding:'10px 20px', background:'#440000', color:'white', border:'none', borderRadius:'8px', cursor:'pointer', display:'flex', alignItems:'center', gap:'10px', fontSize:'14px', transition:'background 0.3s'}}

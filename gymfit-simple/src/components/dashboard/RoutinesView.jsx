@@ -1,105 +1,169 @@
-import React, { useState } from 'react';
-import { Plus, Calendar, Trash2, Check, Dumbbell, PlusCircle, Search, UserPlus, X as CloseIcon } from 'lucide-react';
-import { trainingService, clientService } from '../../api';
+// src/components/dashboard/RoutinesView.jsx
 
-// Base de datos para el buscador
-const EXERCISE_DB = [
-    { name: 'Press de Banca (Barra)', muscle: 'Pecho' }, { name: 'Press Inclinado (Mancuerna)', muscle: 'Pecho' }, { name: 'Cruce de Poleas', muscle: 'Pecho' }, { name: 'Dominadas (Chin Up)', muscle: 'Espalda' }, { name: 'Remo con Barra', muscle: 'Espalda' }, { name: 'Jalón al Pecho', muscle: 'Espalda' }, { name: 'Sentadilla (Barra)', muscle: 'Piernas' }, { name: 'Prensa de Piernas', muscle: 'Piernas' }, { name: 'Peso Muerto Rumano', muscle: 'Isquios' }, { name: 'Curl de Bíceps (Barra)', muscle: 'Bíceps' }, { name: 'Extensiones de Tríceps', muscle: 'Tríceps' }, { name: 'Elevaciones Laterales', muscle: 'Hombros' }, { name: 'Press Militar', muscle: 'Hombros' }, { name: 'Crunch Abdominal', muscle: 'Abdominales' },
-];
+import React from 'react';
+import { Plus, Sun, Sunrise, Dumbbell } from 'lucide-react';
 
-export default function RoutinesView({ user, myRoutines, loadRoutines, startWorkoutSession, linkedClients }) {
-    const [isCreatingRoutine, setIsCreatingRoutine] = useState(false);
-    const [newRoutine, setNewRoutine] = useState({ name: '', description: '', clientId: user.userId, exercises: [] });
-    const [showExerciseModal, setShowExerciseModal] = useState(false);
-    const [exerciseSearchTerm, setExerciseSearchTerm] = useState('');
-    const [loading, setLoading] = useState(false);
+export default function RoutinesView({ 
+    user, 
+    myRoutines, 
+    loadRoutines, 
+    startWorkoutSession, 
+    linkedClients,
+    onActivateZenMode // <-- Prop de Modo Zen
+}) {
+
+    // Helper para obtener el nombre del ejercicio, manejando objetos o strings
+    const getExerciseName = (ex) => {
+        // Si el ejercicio es un objeto (ej: {name: 'press banca', ...}), devuelve el nombre.
+        if (typeof ex === 'object' && ex !== null && ex.name) {
+            return ex.name;
+        }
+        // Si es una cadena (ej: 'press banca' en los datos de mock), devuelve la cadena.
+        return ex;
+    };
     
-    // Estados Entrenador
-    const [trainerSearchId, setTrainerSearchId] = useState('');
-    const [tempExercise, setTempExercise] = useState({ name: '', sets: '', reps: '' });
-
-    // --- FUNCIONES COMUNES ---
-    const handleDeleteRoutine = async (routineId) => {
-        if (!window.confirm("¿Eliminar rutina?")) return;
-        try { await trainingService.deleteRoutine(routineId); loadRoutines(user.role === 'Trainer' ? newRoutine.clientId : user.userId); } catch (err) { alert(err.message); }
-    };
-
-    // --- FUNCIONES CLIENTE (CONSTRUCTOR) ---
-    const startNewRoutine = () => { setNewRoutine({ name: '', description: '', clientId: user.userId, exercises: [] }); setIsCreatingRoutine(true); };
-    const selectExercise = (exerciseName) => { const ex = { name: exerciseName, sets: 3, reps: 10 }; setNewRoutine({ ...newRoutine, exercises: [...newRoutine.exercises, ex] }); setShowExerciseModal(false); setExerciseSearchTerm(''); };
-    const updateBuilder = (index, field, val) => { const up = [...newRoutine.exercises]; up[index][field] = val; setNewRoutine({ ...newRoutine, exercises: up }); };
-    const saveClientRoutine = async () => {
-        if (!newRoutine.name || newRoutine.exercises.length === 0) return alert("Completa la rutina");
-        try { setLoading(true); await trainingService.createRoutine({ ...newRoutine, trainerId: user.userId }); setIsCreatingRoutine(false); loadRoutines(); } catch (err) { alert(err.message); } finally { setLoading(false); }
-    };
-
-    // --- FUNCIONES ENTRENADOR ---
-    const handleAddClient = async () => { try { await clientService.sendRequest(user.userId, trainerSearchId); alert("Solicitud enviada"); setTrainerSearchId(''); } catch (e) { alert(e.message); } };
-    const addExerciseTrainer = () => { if (!tempExercise.name) return; setNewRoutine({ ...newRoutine, exercises: [...newRoutine.exercises, tempExercise] }); setTempExercise({name:'', sets:'', reps:''}); };
-    const saveTrainerRoutine = async () => {
-        if (!newRoutine.clientId) return alert("Falta Cliente");
-        try { setLoading(true); await trainingService.createRoutine({ ...newRoutine, trainerId: user.userId }); loadRoutines(newRoutine.clientId); setNewRoutine({...newRoutine, exercises:[]}); } catch (e) { alert(e.message); } finally { setLoading(false); }
+    // Usamos myRoutines directamente si existen, si no, usamos el mockup para visualizar
+    const routinesData = myRoutines && myRoutines.length > 0 ? myRoutines : [
+        // Datos de ejemplo para renderizar si no hay rutinas cargadas
+        // NOTA: Mantenemos estos como strings para no complicar el mock
+        { id: '1', name: 'DÍA 1 (Press)', date: '24/11/2025', exercises: ['press banca', 'aperturas', 'triceps polea'] },
+        { id: '2', name: 'DÍA 2 (Jalón)', date: '25/11/2025', exercises: ['jalón al pecho', 'remo en máquina', 'curl de biceps'] }
+    ];
+    
+    const isClient = user.role === 'Client';
+    
+    // Función para manejar el inicio de la sesión
+    const handleStart = (routine) => {
+        if (startWorkoutSession) {
+            startWorkoutSession(routine);
+        } else {
+            alert('Funcionalidad de inicio de entrenamiento no disponible.');
+        }
     };
 
     return (
-        <div className="fade-in">
-            {/* HEADER */}
-            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px'}}>
-                <h2 className="page-title" style={{marginBottom:0}}>{user.role === 'Trainer' ? 'Panel de Entrenador' : 'Mis Entrenamientos'}</h2>
-                {user.role === 'Client' && !isCreatingRoutine && (<button className="btn-primary" style={{width:'auto'}} onClick={startNewRoutine}><Plus size={20}/> Nueva Rutina</button>)}
+        <div className="fade-in" style={{ padding: '20px' }}>
+            
+            {/* --- CABECERA Y BOTONES DE ACCIÓN --- */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                <h2 className="page-title" style={{ color: 'white', margin: 0 }}>
+                    {isClient ? 'Mis Entrenamientos' : 'Rutinas de Clientes'}
+                </h2>
+                
+                <div style={{ display: 'flex', gap: '15px' }}>
+                    
+                    {/* BOTÓN MODO ZEN (Solo para Clientes) */}
+                    {isClient && (
+                        <button 
+                            onClick={onActivateZenMode} 
+                            style={{
+                                padding: '10px 20px', 
+                                background: '#005f73', // Azul calmante
+                                color: 'white', 
+                                border: 'none', 
+                                borderRadius: '8px', 
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                transition: 'background 0.3s'
+                            }}
+                            onMouseEnter={(e) => e.target.style.background = '#00798a'}
+                            onMouseLeave={(e) => e.target.style.background = '#005f73'}
+                        >
+                            <Sunrise size={18} /> Modo Zen
+                        </button>
+                    )}
+
+                    {/* BOTÓN NUEVA RUTINA (ya existente, visible para Entrenador o Cliente) */}
+                    <button 
+                        style={{
+                            padding: '10px 20px', 
+                            background: '#E50914', // Rojo GYMFIT
+                            color: 'white', 
+                            border: 'none', 
+                            borderRadius: '8px', 
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}
+                    >
+                        <Plus size={18} /> Nueva Rutina
+                    </button>
+                </div>
             </div>
 
-            {/* MODAL BUSCADOR */}
-            {showExerciseModal && (<div className="modal-overlay"><div className="modal-content"><div className="modal-header"><h3>Agregar Ejercicio</h3><button onClick={()=>setShowExerciseModal(false)} className="btn-icon"><CloseIcon/></button></div><input className="input-field search-exercise" placeholder="Buscar..." value={exerciseSearchTerm} onChange={e=>setExerciseSearchTerm(e.target.value)} autoFocus/><div className="exercise-db-list">{EXERCISE_DB.filter(ex=>ex.name.toLowerCase().includes(exerciseSearchTerm.toLowerCase())).map((ex,i)=>(<div key={i} className="db-exercise-item" onClick={()=>selectExercise(ex.name)}><div className="circle-icon">{ex.name[0]}</div><div><h4>{ex.name}</h4><span>{ex.muscle}</span></div><PlusCircle size={20} color="#E50914"/></div>))}</div></div></div>)}
-
-            {/* --- VISTA CLIENTE: CONSTRUCTOR --- */}
-            {isCreatingRoutine && user.role === 'Client' ? (
-                <div className="routine-creator-box">
-                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px'}}><h3>Crear Rutina</h3><button className="btn-secondary" onClick={()=>setIsCreatingRoutine(false)}>Cancelar</button></div>
-                    <input className="input-field" placeholder="Nombre Rutina" value={newRoutine.name} onChange={e=>setNewRoutine({...newRoutine, name:e.target.value})}/>
-                    <div className="builder-list">
-                        {newRoutine.exercises.length===0 && <div className="empty-state-builder" onClick={()=>setShowExerciseModal(true)}><Dumbbell size={40} color="#333"/><p>Agrega ejercicios</p></div>}
-                        {newRoutine.exercises.map((ex, i)=>(<div key={i} className="builder-item"><div className="builder-header"><h4>{ex.name}</h4><button className="btn-icon" style={{color:'red'}} onClick={()=>{const up={...newRoutine}; up.exercises.splice(i,1); setNewRoutine(up)}}><Trash2 size={16}/></button></div><div className="builder-row"><div className="input-group-label"><label>Sets</label><input className="input-mini" value={ex.sets} onChange={e=>updateBuilder(i,'sets',e.target.value)}/></div><div className="input-group-label"><label>Reps</label><input className="input-mini" value={ex.reps} onChange={e=>updateBuilder(i,'reps',e.target.value)}/></div></div></div>))}
-                    </div>
-                    <button className="btn-secondary full-width" onClick={()=>setShowExerciseModal(true)}>+ Ejercicio</button>
-                    <button className="btn-primary full-width" style={{marginTop:'20px'}} onClick={saveClientRoutine} disabled={loading}>{loading?'...':'Guardar'}</button>
+            {/* --- MENSAJE DE SIN RUTINAS --- */}
+            {isClient && myRoutines && myRoutines.length === 0 && (
+                <div style={{ padding: '40px', background: '#1c1c1c', borderRadius: '12px', textAlign: 'center', border: '1px dashed #333', marginBottom: '20px' }}>
+                    <Dumbbell size={40} color="#E50914" style={{marginBottom: '10px'}}/>
+                    <h4 style={{margin: '5px 0', color: '#ccc'}}>No tienes rutinas asignadas.</h4>
+                    <p style={{color: '#666', fontSize: '14px'}}>Pídele a tu entrenador que te asigne una, o crea una nueva.</p>
                 </div>
-            ) : (
-                /* --- VISTA ENTRENADOR --- */
-                user.role === 'Trainer' ? (
-                    <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px'}}>
-                        <div className="routine-creator-box">
-                            <h3><PlusCircle size={18}/> Asignar Rutina</h3>
-                            <input className="input-field" placeholder="Nombre Rutina" value={newRoutine.name} onChange={e=>setNewRoutine({...newRoutine, name:e.target.value})}/>
-                            <input className="input-field" placeholder="ID Cliente" value={newRoutine.clientId} onChange={e=>setNewRoutine({...newRoutine, clientId:e.target.value})}/>
-                            <div className="add-exercise-box" style={{padding:'15px', background:'#222', borderRadius:'8px', marginTop:'10px'}}>
-                                <input className="input-field" placeholder="Ejercicio" value={tempExercise.name} onChange={e=>setTempExercise({...tempExercise, name:e.target.value})}/>
-                                <div style={{display:'flex', gap:'10px'}}><input className="input-field" placeholder="Sets" value={tempExercise.sets} onChange={e=>setTempExercise({...tempExercise, sets:e.target.value})}/><input className="input-field" placeholder="Reps" value={tempExercise.reps} onChange={e=>setTempExercise({...tempExercise, reps:e.target.value})}/></div>
-                                <button className="btn-secondary full-width" onClick={addExerciseTrainer}>+ Agregar</button>
-                            </div>
-                            <ul style={{margin:'10px 0', paddingLeft:'20px', fontSize:'13px', color:'#ccc'}}>{newRoutine.exercises.map((e,i)=><li key={i}>{e.name} ({e.sets}x{e.reps})</li>)}</ul>
-                            <button className="btn-primary" onClick={saveTrainerRoutine} disabled={loading}>Asignar</button>
+            )}
+
+            {/* --- LISTA DE RUTINAS --- */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
+                {/* LÍNEA 98: El map principal usa routine.id como key */}
+                {routinesData.map((routine) => (
+                    <div key={routine.id} style={{
+                        width: '300px',
+                        background: '#1c1c1c', 
+                        padding: '20px', 
+                        borderRadius: '12px', 
+                        border: '1px solid #333',
+                        boxShadow: '0 4px 15px rgba(0,0,0,0.4)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                            <h3 style={{ color: 'white', margin: 0, fontSize: '1.5em' }}>{routine.name}</h3>
+                            <span style={{ color: '#666', fontSize: '12px' }}>{routine.date}</span>
                         </div>
-                        <div className="routine-manager-box">
-                            <h3>Clientes</h3>
-                            <div style={{display:'flex', gap:'5px', marginBottom:'15px'}}><input className="input-field" placeholder="ID Cliente..." value={trainerSearchId} onChange={e=>setTrainerSearchId(e.target.value)}/><button className="btn-secondary" onClick={()=>loadRoutines(trainerSearchId)}><Search size={18}/></button><button className="btn-secondary" onClick={handleAddClient} style={{color:'#E50914'}}><UserPlus size={18}/></button></div>
-                            {linkedClients?.length > 0 && <div className="clients-list">{linkedClients.map(c=>(<div key={c._id} onClick={()=>{setNewRoutine({...newRoutine, clientId:c._id}); loadRoutines(c._id)}} style={{padding:'8px', background:'#222', marginBottom:'5px', borderRadius:'5px', cursor:'pointer'}}>{c.firstName} {c.lastName}</div>))}</div>}
-                            <div style={{marginTop:'20px'}}>{myRoutines.map(r=>(<div key={r._id} style={{background:'#111', padding:'10px', marginBottom:'5px', borderRadius:'5px', display:'flex', justifyContent:'space-between'}}>{r.name} <Trash2 size={14} color="red" onClick={()=>handleDeleteRoutine(r._id)}/></div>))}</div>
-                        </div>
+                        
+                        <ul style={{ listStyleType: 'none', padding: 0, margin: '15px 0' }}>
+                            {/* LÍNEA 119: El map interno es el que causaba el error de key y el error de renderizado */}
+                            {routine.exercises.slice(0, 2).map((ex, idx) => (
+                                <li 
+                                    key={idx} // <-- CORRECCIÓN 1: Añadir la prop key
+                                    style={{ color: '#E50914', marginBottom: '5px', fontSize: '14px' }}
+                                >
+                                    • {getExerciseName(ex)} {/* <-- CORRECCIÓN 2: Renderizar solo el nombre */}
+                                </li>
+                            ))}
+                            {routine.exercises.length > 2 && (
+                                <li style={{ color: '#888', fontSize: '12px' }}>
+                                    ... y {routine.exercises.length - 2} ejercicios más.
+                                </li>
+                            )}
+                        </ul>
+
+                        <button 
+                            onClick={() => handleStart(routine)} 
+                            disabled={!startWorkoutSession} 
+                            style={{
+                                width: '100%', 
+                                padding: '12px', 
+                                background: startWorkoutSession ? 'linear-gradient(90deg, #E50914, #ff4d4d)' : '#444',
+                                color: 'white', 
+                                border: 'none', 
+                                borderRadius: '8px', 
+                                cursor: startWorkoutSession ? 'pointer' : 'not-allowed', 
+                                fontSize: '16px',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            {startWorkoutSession ? 'EMPEZAR' : 'NO DISPONIBLE'}
+                        </button>
                     </div>
-                ) : (
-                    /* --- VISTA CLIENTE: LISTA --- */
-                    <div className="routines-grid">
-                        {myRoutines.length === 0 ? <p>No tienes rutinas.</p> : myRoutines.map(r => (
-                            <div key={r._id||r.id} className="routine-card clickable" onClick={() => startWorkoutSession(r)}>
-                                <div className="routine-header" style={{borderBottom:'none', paddingBottom:0}}><h3>{r.name}</h3><button onClick={(e)=>{e.stopPropagation(); handleDeleteRoutine(r._id||r.id)}} className="btn-icon"><Trash2 size={16}/></button></div>
-                                <div className="routine-date"><Calendar size={14}/> {new Date(r.createdAt).toLocaleDateString()}</div>
-                                <div className="routine-preview-list" style={{marginTop:'15px'}}>{r.exercises.slice(0,3).map((e,i)=><span key={i} style={{display:'block', color:'#aaa', fontSize:'13px'}}>• {e.name}</span>)}</div>
-                                <button className="btn-primary" style={{marginTop:'20px'}}>Empezar</button>
-                            </div>
-                        ))}
-                    </div>
-                )
+                ))}
+            </div>
+
+            {user.role === 'Trainer' && (
+                <div style={{ marginTop: '30px', padding: '20px', background: '#333', borderRadius: '12px', color: '#ccc' }}>
+                    <p style={{ margin: 0 }}>
+                        Como **Entrenador**, ves una lista de rutinas de ejemplo. Usa las funcionalidades de gestión de clientes/rutinas (no mostradas aquí) para asignar a tus clientes.
+                    </p>
+                </div>
             )}
         </div>
     );

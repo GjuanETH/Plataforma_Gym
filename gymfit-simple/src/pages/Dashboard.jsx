@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { authService, trainingService, chatService, clientService } from '../api';
 import { User, ShoppingBag } from 'lucide-react';
 import './Dashboard.css';
@@ -11,9 +11,12 @@ import ChatView from '../components/dashboard/ChatView';
 import RoutinesView from '../components/dashboard/RoutinesView';
 import WorkoutSession from '../components/dashboard/WorkoutSession';
 import OrdersView from '../components/dashboard/OrdersView';
+import ZenModeView from '../components/dashboard/ZenModeView';
+
+import ZenMusic from '../assets/peaceful solitude [F02iMCEEQWs].mp3';
 
 export default function Dashboard({ user, onLogout, onNavigate }) {
-    const API_KEY_IMGBB = '5ddc683f72b1a8e246397ff506b520d5'; 
+    const API_KEY_IMGBB = '5ddc683f72b1a8e246397ff506b520d5';
 
     const [activeTab, setActiveTab] = useState('routines');
     const [bio, setBio] = useState('');
@@ -23,25 +26,74 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [isEditingBio, setIsEditingBio] = useState(false);
 
+    const [isZenMode, setIsZenMode] = useState(false);
+    const audioRef = useRef(null);
+
+    const contentRef = useRef(null);
+
     const [myRoutines, setMyRoutines] = useState([]);
-    const [activeWorkoutRoutine, setActiveWorkoutRoutine] = useState(null); 
+    const [activeWorkoutRoutine, setActiveWorkoutRoutine] = useState(null);
     const [realStats, setRealStats] = useState({ totalSessions: 0, totalKg: 0, currentStreak: 0, weeklyActivity: [], historyData: [], photos: [], radarData: [], personalRecords: [], activityDates: [] });
-    
-    const [trainersList, setTrainersList] = useState([]); 
-    const [clientsList, setClientsList] = useState([]);   
+
+    const [trainersList, setTrainersList] = useState([]);
+    const [clientsList, setClientsList] = useState([]);
     const [linkedClients, setLinkedClients] = useState([]);
     const [pendingRequests, setPendingRequests] = useState([]);
     const [chatMessages, setChatMessages] = useState([]);
     const [selectedChatUser, setSelectedChatUser] = useState(null);
     const [newMessage, setNewMessage] = useState('');
 
+    const loadRoutines = useCallback((targetClientId) => {
+        const idToFetch = targetClientId || user.userId;
+        if (user.role === 'Trainer' && !targetClientId) { setMyRoutines([]); return; }
+        trainingService.getClientRoutines(idToFetch).then(data => setMyRoutines(data)).catch(err => { console.error(err); setMyRoutines([]); });
+    }, [user.role, user.userId]);
+
+    const loadChat = useCallback((otherUserId) => {
+        chatService.getChatHistory(user.userId, otherUserId).then(msgs => setChatMessages(msgs));
+    }, [user.userId]);
+
+    // ARREGLO DE SCROLL AUTOMÁTICO
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            if (contentRef.current) {
+                contentRef.current.scrollTo({ top: 0, behavior: 'instant' });
+            }
+            window.scrollTo(0, 0);
+        }, 0); 
+
+        return () => clearTimeout(timeoutId);
+    }, [activeTab, selectedChatUser]);
+
+    // Lógica Efectos Zen
+    useEffect(() => {
+        const audio = audioRef.current;
+        document.body.classList.toggle('zen-mode-active', isZenMode);
+
+        if (audio) {
+            if (isZenMode) {
+                audio.volume = 0.4;
+                audio.loop = true;
+                audio.play().catch(error => console.log("La música zen no pudo iniciar automáticamente.", error));
+            } else {
+                audio.pause();
+                audio.currentTime = 0;
+            }
+        }
+        return () => {
+            document.body.classList.remove('zen-mode-active');
+            if (audio) { audio.pause(); audio.currentTime = 0; }
+        };
+    }, [isZenMode]);
+
+    // useEffect Principal
     useEffect(() => {
         setBio(localStorage.getItem(`gymfit_bio_${user.userId}`) || (user.role === 'Trainer' ? "Entrenador certificado." : "Atleta en proceso"));
         setDisplayName(localStorage.getItem(`gymfit_custom_name_${user.userId}`) || user.firstName);
         setAvatarUrl(localStorage.getItem(`gymfit_avatar_${user.userId}`));
 
         if (user.role === 'Client') {
-            loadRoutines(); 
+            loadRoutines();
             trainingService.getClientHistory(user.userId).then(logs => calculateRealStats(logs));
             chatService.getTrainers().then(data => setTrainersList(data));
             clientService.getPendingRequests(user.userId).then(data => setPendingRequests(data));
@@ -49,17 +101,7 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
             chatService.getMyClients(user.userId).then(data => setClientsList(data));
             clientService.getMyClientsList(user.userId).then(data => setLinkedClients(data));
         }
-    }, [user]);
-
-    const loadRoutines = (targetClientId) => {
-        const idToFetch = targetClientId || user.userId;
-        if (user.role === 'Trainer' && !targetClientId) { setMyRoutines([]); return; }
-        trainingService.getClientRoutines(idToFetch).then(data => setMyRoutines(data)).catch(err => { console.error(err); setMyRoutines([]); });
-    };
-
-    const loadChat = (otherUserId) => {
-        chatService.getChatHistory(user.userId, otherUserId).then(msgs => setChatMessages(msgs));
-    };
+    }, [user, loadRoutines]);
 
     const handleImageUpload = async (e) => {
         const file = e.target.files[0];
@@ -70,9 +112,9 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
         try {
             const res = await fetch(`https://api.imgbb.com/1/upload?key=${API_KEY_IMGBB}`, { method: 'POST', body: formData });
             const data = await res.json();
-            if (data.success) { 
-                setAvatarUrl(data.data.url); 
-                localStorage.setItem(`gymfit_avatar_${user.userId}`, data.data.url); 
+            if (data.success) {
+                setAvatarUrl(data.data.url);
+                localStorage.setItem(`gymfit_avatar_${user.userId}`, data.data.url);
                 try { await authService.updateAvatar(user.userId, data.data.url); } catch(e){}
             }
         } catch (err) { console.error(err); } finally { setUploadingImg(false); }
@@ -102,7 +144,7 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
         const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-        if (uniqueDaysList.includes(todayStr) || uniqueDaysList.includes(yesterdayStr)) {
+        if (uniqueDatesSet.has(todayStr) || uniqueDatesSet.has(yesterdayStr)) {
             currentStreak = 1;
             for (let i = 0; i < uniqueDaysList.length - 1; i++) {
                 const d1 = new Date(uniqueDaysList[i]);
@@ -117,21 +159,21 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
 
         const weeklyActivityMap = { 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0 };
         const dayLabels = { 'Mon': 'L', 'Tue': 'M', 'Wed': 'X', 'Thu': 'J', 'Fri': 'V', 'Sat': 'S', 'Sun': 'D' };
-        
-        const curr = new Date(); 
-        const dayOfWeek = curr.getDay() === 0 ? 7 : curr.getDay(); 
-        const firstDayOfWeek = new Date(curr); 
-        firstDayOfWeek.setDate(curr.getDate() - dayOfWeek + 1); 
-        firstDayOfWeek.setHours(0,0,0,0); 
-        
-        logs.forEach(log => { 
-            const logDate = new Date(log.date || log.createdAt); 
-            if (logDate >= firstDayOfWeek) { 
-                const dayStr = logDate.toDateString().split(' ')[0]; 
+
+        const curr = new Date();
+        const dayOfWeek = curr.getDay() === 0 ? 7 : curr.getDay();
+        const firstDayOfWeek = new Date(curr);
+        firstDayOfWeek.setDate(curr.getDate() - dayOfWeek + 1);
+        firstDayOfWeek.setHours(0,0,0,0);
+
+        logs.forEach(log => {
+            const logDate = new Date(log.date || log.createdAt);
+            if (logDate >= firstDayOfWeek) {
+                const dayStr = logDate.toDateString().split(' ')[0];
                 if (weeklyActivityMap[dayStr] !== undefined) {
-                    weeklyActivityMap[dayStr] += (Number(log.weightUsed) * Number(log.repsDone)); 
+                    weeklyActivityMap[dayStr] += (Number(log.weightUsed) * Number(log.repsDone));
                 }
-            } 
+            }
         });
 
         const orderedChartData = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(k => ({ day: dayLabels[k], kg: weeklyActivityMap[k] }));
@@ -151,14 +193,19 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
         });
         const personalRecords = Object.keys(prMap).map(k => ({ name: k.charAt(0).toUpperCase() + k.slice(1), weight: prMap[k] })).sort((a,b)=>b.weight-a.weight).slice(0,5);
 
-        const historyData = logs.slice(0, 20).reverse().map(l => ({ name: l.exerciseName.substring(0, 4), kg: l.weightUsed }));
+        const historyData = logs.slice(0, 20).reverse().map(l => ({
+            exerciseName: l.exerciseName,
+            kg: l.weightUsed,
+            date: new Date(l.date || l.createdAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+        }));
+
         const photos = logs.filter(l => l.photoUrl).map(l => ({ url: l.photoUrl, date: l.date || l.createdAt })).sort((a,b)=>new Date(b.date)-new Date(a.date));
 
-        setRealStats({ totalSessions, totalKg, currentStreak, weeklyActivity: orderedChartData, historyData, photos, radarData, personalRecords, activityDates }); 
+        setRealStats({ totalSessions, totalKg, currentStreak, weeklyActivity: orderedChartData, historyData, photos, radarData, personalRecords, activityDates });
     };
 
-    const handleRespondRequest = async (reqId, status) => { 
-        try { await clientService.respondRequest(reqId, status); alert(status === 'accepted' ? "¡Aceptado!" : "Rechazado"); } catch (err) { alert("Error"); } 
+    const handleRespondRequest = async (reqId, status) => {
+        try { await clientService.respondRequest(reqId, status); alert(status === 'accepted' ? "¡Aceptado!" : "Rechazado"); } catch (err) { alert("Error"); }
     };
 
     const refreshStats = () => trainingService.getClientHistory(user.userId).then(logs => calculateRealStats(logs));
@@ -180,26 +227,33 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
             }
         });
 
-        routine.preloadedHistory = realHistoryMap; 
-        setActiveWorkoutRoutine({...routine}); 
+        routine.preloadedHistory = realHistoryMap;
+        setActiveWorkoutRoutine({...routine});
+    };
+
+    const handleActivateZenMode = () => {
+        setActiveTab('zen');
+        setIsZenMode(true);
+    };
+
+    const handleDeactivateZenMode = () => {
+        setActiveTab('routines');
+        setIsZenMode(false);
     };
 
     return (
         <div className="dashboard-layout">
-            {/* BARRA DE NAVEGACIÓN COMPLETA */}
+
+            <audio ref={audioRef} src={ZenMusic} style={{display:'none'}} />
+
             <nav className="navbar" style={{justifyContent: 'space-between'}}>
-                {/* LOGO GYMFIT -> Vuelve a Landing */}
-                <div className="nav-logo" onClick={() => onNavigate('landing')} style={{cursor:'pointer'}}>GYMFIT</div> 
-                
+                <div className="nav-logo" onClick={() => onNavigate('landing')} style={{cursor:'pointer'}}>GYMFIT</div>
+
                 <div className="nav-links" style={{flexGrow: 0}}>
-                    {/* ENLACES PÚBLICOS */}
                     <button className="nav-link" onClick={() => onNavigate('landing')} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px', color:'white'}}>Inicio</button>
                     <button className="nav-link" onClick={() => onNavigate('landing')} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px', color:'white'}}>Nosotros</button>
                     <button className="nav-link" onClick={() => onNavigate('landing')} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px', color:'white'}}>Contacto</button>
-
-                    {/* SEPARADOR y Botón Tienda */}
                     <div style={{width:'1px', height:'20px', background:'#333', margin:'0 15px'}}></div>
-                    
                     <button onClick={() => onNavigate('store')} style={{background: 'transparent', border: 'none', color: '#E50914', cursor: 'pointer', display:'flex', alignItems:'center', gap:'5px', fontSize:'16px'}}>
                         <ShoppingBag size={18}/> Tienda
                     </button>
@@ -207,22 +261,34 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
                 </div>
             </nav>
             <div className="dashboard-main">
-                <Sidebar 
+                <Sidebar
                     user={user} activeTab={activeTab} setActiveTab={setActiveTab} onLogout={onLogout} onNavigate={onNavigate}
                     displayName={displayName} avatarUrl={avatarUrl} pendingRequests={pendingRequests}
-                    getInitials={() => displayName ? displayName[0] : 'U'} 
+                    getInitials={() => displayName ? displayName[0] : 'U'}
                     copyToClipboard={() => {navigator.clipboard.writeText(user.userId); alert('ID Copiado');}}
                     setAvatarUrl={setAvatarUrl}
                 />
-                <main className="dashboard-content-area">
+
+                <main className="dashboard-content-area" ref={contentRef}>
                     {activeWorkoutRoutine && (
                         <WorkoutSession user={user} routine={activeWorkoutRoutine} preloadedHistory={activeWorkoutRoutine.preloadedHistory} onFinish={() => setActiveWorkoutRoutine(null)} onCancel={() => setActiveWorkoutRoutine(null)} refreshStats={refreshStats}/>
                     )}
 
-                    {!activeWorkoutRoutine && (
+                    {activeTab === 'zen' && isZenMode && (
+                        <ZenModeView onDeactivate={handleDeactivateZenMode} />
+                    )}
+
+                    {!activeWorkoutRoutine && activeTab !== 'zen' && (
                         <>
                             {activeTab === 'routines' && (
-                                <RoutinesView user={user} myRoutines={myRoutines} loadRoutines={loadRoutines} startWorkoutSession={handleStartSession} linkedClients={linkedClients} />
+                                <RoutinesView
+                                    user={user}
+                                    myRoutines={myRoutines}
+                                    loadRoutines={loadRoutines}
+                                    startWorkoutSession={handleStartSession}
+                                    linkedClients={linkedClients}
+                                    onActivateZenMode={handleActivateZenMode}
+                                />
                             )}
 
                             {activeTab === 'stats' && user.role === 'Client' && (
@@ -234,20 +300,33 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
                             )}
 
                             {activeTab === 'chat' && (
-                                <ChatView user={user} trainersList={trainersList} clientsList={clientsList} pendingRequests={pendingRequests} selectedChatUser={selectedChatUser} setSelectedChatUser={setSelectedChatUser} chatMessages={chatMessages} setChatMessages={setChatMessages} newMessage={newMessage} setNewMessage={setNewMessage} handleRespondRequest={handleRespondRequest} loadChat={loadChat} loadData={()=>{}} />
+                                <ChatView
+                                    user={user}
+                                    trainersList={trainersList}
+                                    clientsList={clientsList}
+                                    pendingRequests={pendingRequests}
+                                    selectedChatUser={selectedChatUser}
+                                    setSelectedChatUser={setSelectedChatUser}
+                                    chatMessages={chatMessages}
+                                    setChatMessages={setChatMessages}
+                                    newMessage={newMessage}
+                                    setNewMessage={setNewMessage}
+                                    handleRespondRequest={handleRespondRequest}
+                                    loadChat={loadChat}
+                                />
                             )}
 
                             {activeTab === 'profile' && (
-                                <ProfileView 
-                                    user={user} displayName={displayName} setDisplayName={setDisplayName} bio={bio} setBio={setBio} avatarUrl={avatarUrl} 
-                                    isEditingProfile={isEditingProfile} setIsEditingProfile={setIsEditingProfile} 
-                                    isEditingBio={isEditingBio} setIsEditingBio={setIsEditingBio} 
-                                    handleImageUpload={handleImageUpload} 
-                                    saveProfileChanges={() => {localStorage.setItem(`gymfit_custom_name_${user.userId}`, displayName); setIsEditingProfile(false);}} 
-                                    saveBio={() => {localStorage.setItem(`gymfit_bio_${user.userId}`, bio); setIsEditingBio(false);}} 
-                                    getInitials={() => displayName ? displayName[0] : 'U'} 
-                                    uploadingImg={uploadingImg} 
-                                    setAvatarUrl={setAvatarUrl} 
+                                <ProfileView
+                                    user={user} displayName={displayName} setDisplayName={setDisplayName} bio={bio} setBio={setBio} avatarUrl={avatarUrl}
+                                    isEditingProfile={isEditingProfile} setIsEditingProfile={setIsEditingProfile}
+                                    isEditingBio={isEditingBio} setIsEditingBio={setIsEditingBio}
+                                    handleImageUpload={handleImageUpload}
+                                    saveProfileChanges={() => {localStorage.setItem(`gymfit_custom_name_${user.userId}`, displayName); setIsEditingProfile(false);}}
+                                    saveBio={() => {localStorage.setItem(`gymfit_bio_${user.userId}`, bio); setIsEditingBio(false);}}
+                                    getInitials={() => displayName ? displayName[0] : 'U'}
+                                    uploadingImg={uploadingImg}
+                                    setAvatarUrl={setAvatarUrl}
                                     onLogout={onLogout}
                                 />
                             )}

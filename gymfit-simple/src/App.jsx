@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import './App.css';
 
-// Importamos las páginas
-import LandingPage from './pages/LandingPage/LandingPage'; // Asegúrate de que la ruta sea correcta
+import LandingPage from './pages/LandingPage/LandingPage'; 
 import AuthPage from './pages/AuthPage/AuthPage';
 import Dashboard from './pages/Dashboard';
-import StorePage from './pages/StorePage'; // <--- IMPORTAMOS LA TIENDA
-import CheckoutPage from './pages/CheckoutPage';
+import StorePage from './pages/StorePage'; 
+import CheckoutPage from './pages/CheckoutPage'; 
 
 import { authService } from './api';
 
@@ -35,15 +34,18 @@ function App() {
     setCurrentView('landing');
   };
 
-  // --- RENDERIZADO DE VISTAS ---
+  // --- RENDERIZADO ---
 
   if (currentView === 'landing') {
     return <LandingPage onNavigate={setCurrentView} />;
   }
 
-  // NUEVA VISTA: TIENDA
   if (currentView === 'store') {
-    return <StorePage onNavigate={setCurrentView} />;
+    return <StorePage onNavigate={setCurrentView} user={user} />;
+  }
+
+  if (currentView === 'checkout') {
+    return <CheckoutPage onNavigate={setCurrentView} user={user} />;
   }
 
   if (currentView === 'login' || currentView === 'register') {
@@ -59,16 +61,8 @@ function App() {
         setCurrentView('login');
         return null;
     }
-    return <Dashboard user={user} onLogout={handleLogout} />;
-  }
-
-  if (currentView === 'store') {
-    return <StorePage onNavigate={setCurrentView} />;
-  }
-
-  // AGREGAR ESTO AQUÍ:
-  if (currentView === 'checkout') {
-    return <CheckoutPage onNavigate={setCurrentView} />;
+    // CAMBIO AQUÍ: Pasamos onNavigate al Dashboard
+    return <Dashboard user={user} onLogout={handleLogout} onNavigate={setCurrentView} />;
   }
 
   return null;

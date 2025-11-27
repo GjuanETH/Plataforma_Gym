@@ -3,21 +3,19 @@ import { authService, trainingService, chatService, clientService } from '../api
 import { User } from 'lucide-react';
 import './Dashboard.css';
 
-// Importamos los componentes modulares
 import Sidebar from '../components/dashboard/Sidebar';
 import ProfileView from '../components/dashboard/ProfileView';
 import StatsView from '../components/dashboard/StatsView';
 import ChatView from '../components/dashboard/ChatView';
 import RoutinesView from '../components/dashboard/RoutinesView';
 import WorkoutSession from '../components/dashboard/WorkoutSession';
+import OrdersView from '../components/dashboard/OrdersView';
 
-export default function Dashboard({ user, onLogout }) {
+// RECIBIMOS onNavigate
+export default function Dashboard({ user, onLogout, onNavigate }) {
     const API_KEY_IMGBB = '5ddc683f72b1a8e246397ff506b520d5'; 
 
-    // --- ESTADOS GLOBALES ---
     const [activeTab, setActiveTab] = useState('routines');
-    
-    // Datos Usuario
     const [bio, setBio] = useState('');
     const [displayName, setDisplayName] = useState('');
     const [avatarUrl, setAvatarUrl] = useState(null);
@@ -25,24 +23,10 @@ export default function Dashboard({ user, onLogout }) {
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [isEditingBio, setIsEditingBio] = useState(false);
 
-    // Datos Negocio
     const [myRoutines, setMyRoutines] = useState([]);
     const [activeWorkoutRoutine, setActiveWorkoutRoutine] = useState(null); 
+    const [realStats, setRealStats] = useState({ totalSessions: 0, totalKg: 0, currentStreak: 0, weeklyActivity: [], historyData: [], photos: [], radarData: [], personalRecords: [], activityDates: [] });
     
-    // ESTADO DE ESTADÍSTICAS REALES
-    const [realStats, setRealStats] = useState({ 
-        totalSessions: 0, 
-        totalKg: 0, 
-        currentStreak: 0, 
-        weeklyActivity: [], 
-        historyData: [], 
-        photos: [],
-        radarData: [], 
-        personalRecords: [],
-        activityDates: [] // Lista de fechas exactas para el Heatmap
-    });
-    
-    // Datos Chat
     const [trainersList, setTrainersList] = useState([]); 
     const [clientsList, setClientsList] = useState([]);   
     const [linkedClients, setLinkedClients] = useState([]);
@@ -51,14 +35,11 @@ export default function Dashboard({ user, onLogout }) {
     const [selectedChatUser, setSelectedChatUser] = useState(null);
     const [newMessage, setNewMessage] = useState('');
 
-    // --- CARGA DE DATOS ---
     useEffect(() => {
-        // Restaurar datos locales
         setBio(localStorage.getItem(`gymfit_bio_${user.userId}`) || (user.role === 'Trainer' ? "Entrenador certificado." : "Atleta en proceso"));
         setDisplayName(localStorage.getItem(`gymfit_custom_name_${user.userId}`) || user.firstName);
         setAvatarUrl(localStorage.getItem(`gymfit_avatar_${user.userId}`));
 
-        // Cargar datos de red según el rol
         if (user.role === 'Client') {
             loadRoutines(); 
             trainingService.getClientHistory(user.userId).then(logs => calculateRealStats(logs));
@@ -70,7 +51,6 @@ export default function Dashboard({ user, onLogout }) {
         }
     }, [user]);
 
-    // --- FUNCIONES DE NEGOCIO ---
     const loadRoutines = (targetClientId) => {
         const idToFetch = targetClientId || user.userId;
         if (user.role === 'Trainer' && !targetClientId) { setMyRoutines([]); return; }
@@ -98,11 +78,6 @@ export default function Dashboard({ user, onLogout }) {
         } catch (err) { console.error(err); } finally { setUploadingImg(false); }
     };
 
-    // ===========================================================================
-    // === CÁLCULO DE ESTADÍSTICAS REALES (SIN SIMULACIONES) ===
-    // ===========================================================================
-    
-    // Función auxiliar para adivinar músculo según nombre del ejercicio
     const guessMuscleGroup = (name) => {
         const n = name.toLowerCase();
         if (n.includes('press') || n.includes('push') || n.includes('pecho') || n.includes('chest') || n.includes('bench')) return 'Pecho/Push';
@@ -118,13 +93,10 @@ export default function Dashboard({ user, onLogout }) {
             setRealStats({ totalSessions: 0, totalKg: 0, currentStreak: 0, weeklyActivity: [], historyData: [], photos: [], radarData: [], personalRecords: [], activityDates: [] });
             return;
         }
-
-        // 1. FECHAS EXACTAS (Para Heatmap y Racha)
         const uniqueDatesSet = new Set(logs.map(log => new Date(log.date || log.createdAt).toISOString().split('T')[0]));
         const uniqueDaysList = Array.from(uniqueDatesSet).sort().reverse();
         const activityDates = Array.from(uniqueDatesSet);
 
-        // 2. RACHA (STREAK)
         let currentStreak = 0;
         const todayStr = new Date().toISOString().split('T')[0];
         const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
@@ -135,66 +107,50 @@ export default function Dashboard({ user, onLogout }) {
             for (let i = 0; i < uniqueDaysList.length - 1; i++) {
                 const d1 = new Date(uniqueDaysList[i]);
                 const d2 = new Date(uniqueDaysList[i+1]);
-                // Diferencia en días
                 const diff = Math.ceil(Math.abs(d1 - d2) / (1000 * 60 * 60 * 24));
                 if (diff === 1) currentStreak++; else break;
             }
         }
 
-        // 3. TOTALES GENERALES
         const totalKg = logs.reduce((acc, log) => acc + (Number(log.weightUsed) * Number(log.repsDone)), 0);
         const totalSessions = uniqueDaysList.length;
 
-        // 4. VOLUMEN SEMANAL (Sólo esta semana, Lunes a Domingo)
         const weeklyActivityMap = { 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0 };
         const dayLabels = { 'Mon': 'L', 'Tue': 'M', 'Wed': 'X', 'Thu': 'J', 'Fri': 'V', 'Sat': 'S', 'Sun': 'D' };
         
-        // Calcular inicio de semana (Lunes)
         const curr = new Date(); 
-        const dayOfWeek = curr.getDay() === 0 ? 7 : curr.getDay(); // Domingo es 0, lo pasamos a 7
+        const dayOfWeek = curr.getDay() === 0 ? 7 : curr.getDay(); 
         const firstDayOfWeek = new Date(curr); 
-        firstDayOfWeek.setDate(curr.getDate() - dayOfWeek + 1); // Vamos al Lunes
+        firstDayOfWeek.setDate(curr.getDate() - dayOfWeek + 1); 
         firstDayOfWeek.setHours(0,0,0,0); 
         
         logs.forEach(log => { 
             const logDate = new Date(log.date || log.createdAt); 
-            // Solo sumamos si el log es de esta semana
             if (logDate >= firstDayOfWeek) { 
-                const dayStr = logDate.toDateString().split(' ')[0]; // "Mon", "Tue"...
+                const dayStr = logDate.toDateString().split(' ')[0]; 
                 if (weeklyActivityMap[dayStr] !== undefined) {
                     weeklyActivityMap[dayStr] += (Number(log.weightUsed) * Number(log.repsDone)); 
                 }
             } 
         });
 
-        const orderedChartData = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(k => ({ 
-            day: dayLabels[k], 
-            kg: weeklyActivityMap[k] 
-        }));
+        const orderedChartData = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(k => ({ day: dayLabels[k], kg: weeklyActivityMap[k] }));
 
-        // 5. RADAR CHART (Distribución Muscular)
         const muscleCounts = { 'Pecho/Push': 0, 'Espalda/Pull': 0, 'Pierna': 0, 'Brazos': 0, 'Core': 0, 'General': 0 };
         logs.forEach(log => {
             const group = guessMuscleGroup(log.exerciseName);
             muscleCounts[group] = (muscleCounts[group] || 0) + 1;
         });
-        const radarData = Object.keys(muscleCounts)
-            .map(k => ({ subject: k, A: muscleCounts[k], fullMark: 100 }))
-            .filter(x => x.A > 0);
+        const radarData = Object.keys(muscleCounts).map(k => ({ subject: k, A: muscleCounts[k], fullMark: 100 })).filter(x => x.A > 0);
 
-        // 6. PERSONAL RECORDS (PRs)
         const prMap = {};
         logs.forEach(log => {
             const n = log.exerciseName.toLowerCase().trim();
             const w = Number(log.weightUsed);
             if (!prMap[n] || w > prMap[n]) prMap[n] = w;
         });
-        const personalRecords = Object.keys(prMap)
-            .map(k => ({ name: k.charAt(0).toUpperCase() + k.slice(1), weight: prMap[k] }))
-            .sort((a,b)=>b.weight-a.weight)
-            .slice(0,5);
+        const personalRecords = Object.keys(prMap).map(k => ({ name: k.charAt(0).toUpperCase() + k.slice(1), weight: prMap[k] })).sort((a,b)=>b.weight-a.weight).slice(0,5);
 
-        // 7. HISTORIAL LINEAL & FOTOS
         const historyData = logs.slice(0, 20).reverse().map(l => ({ name: l.exerciseName.substring(0, 4), kg: l.weightUsed }));
         const photos = logs.filter(l => l.photoUrl).map(l => ({ url: l.photoUrl, date: l.date || l.createdAt })).sort((a,b)=>new Date(b.date)-new Date(a.date));
 
@@ -207,7 +163,6 @@ export default function Dashboard({ user, onLogout }) {
 
     const refreshStats = () => trainingService.getClientHistory(user.userId).then(logs => calculateRealStats(logs));
 
-    // --- INICIAR SESIÓN CON HISTORIAL REAL ---
     const handleStartSession = async (routine) => {
         setActiveWorkoutRoutine(routine);
         let historyLogs = [];
@@ -229,73 +184,42 @@ export default function Dashboard({ user, onLogout }) {
         setActiveWorkoutRoutine({...routine}); 
     };
 
-    // --- RENDER ---
     return (
         <div className="dashboard-layout">
             <nav className="navbar"><div className="nav-logo">GYMFIT</div><div className="nav-links"><span className="nav-user-badge"><User size={16}/> {user.role}</span></div></nav>
             <div className="dashboard-main">
                 <Sidebar 
-                    user={user} activeTab={activeTab} setActiveTab={setActiveTab} onLogout={onLogout}
+                    user={user} activeTab={activeTab} setActiveTab={setActiveTab} onLogout={onLogout} onNavigate={onNavigate}
                     displayName={displayName} avatarUrl={avatarUrl} pendingRequests={pendingRequests}
                     getInitials={() => displayName ? displayName[0] : 'U'} 
                     copyToClipboard={() => {navigator.clipboard.writeText(user.userId); alert('ID Copiado');}}
                     setAvatarUrl={setAvatarUrl}
                 />
                 <main className="dashboard-content-area">
-                    {/* MODAL SUPERPUESTO: SESIÓN DE ENTRENAMIENTO */}
                     {activeWorkoutRoutine && (
-                        <WorkoutSession 
-                            user={user} 
-                            routine={activeWorkoutRoutine} 
-                            preloadedHistory={activeWorkoutRoutine.preloadedHistory}
-                            onFinish={() => setActiveWorkoutRoutine(null)} 
-                            onCancel={() => setActiveWorkoutRoutine(null)}
-                            refreshStats={refreshStats}
-                        />
+                        <WorkoutSession user={user} routine={activeWorkoutRoutine} preloadedHistory={activeWorkoutRoutine.preloadedHistory} onFinish={() => setActiveWorkoutRoutine(null)} onCancel={() => setActiveWorkoutRoutine(null)} refreshStats={refreshStats}/>
                     )}
 
-                    {/* VISTAS NORMALES (Si no hay entreno activo) */}
                     {!activeWorkoutRoutine && (
                         <>
                             {activeTab === 'routines' && (
-                                <RoutinesView 
-                                    user={user} 
-                                    myRoutines={myRoutines} 
-                                    loadRoutines={loadRoutines} 
-                                    startWorkoutSession={handleStartSession}
-                                    linkedClients={linkedClients}
-                                />
+                                <RoutinesView user={user} myRoutines={myRoutines} loadRoutines={loadRoutines} startWorkoutSession={handleStartSession} linkedClients={linkedClients} />
                             )}
 
                             {activeTab === 'stats' && user.role === 'Client' && (
                                 <StatsView realStats={realStats} />
                             )}
 
+                            {activeTab === 'orders' && user.role === 'Client' && (
+                                <OrdersView user={user} />
+                            )}
+
                             {activeTab === 'chat' && (
-                                <ChatView 
-                                    user={user}
-                                    trainersList={trainersList} clientsList={clientsList} pendingRequests={pendingRequests}
-                                    selectedChatUser={selectedChatUser} setSelectedChatUser={setSelectedChatUser}
-                                    chatMessages={chatMessages} setChatMessages={setChatMessages}
-                                    newMessage={newMessage} setNewMessage={setNewMessage}
-                                    handleRespondRequest={handleRespondRequest}
-                                    loadChat={loadChat} loadData={()=>{}}
-                                />
+                                <ChatView user={user} trainersList={trainersList} clientsList={clientsList} pendingRequests={pendingRequests} selectedChatUser={selectedChatUser} setSelectedChatUser={setSelectedChatUser} chatMessages={chatMessages} setChatMessages={setChatMessages} newMessage={newMessage} setNewMessage={setNewMessage} handleRespondRequest={handleRespondRequest} loadChat={loadChat} loadData={()=>{}} />
                             )}
 
                             {activeTab === 'profile' && (
-                                <ProfileView 
-                                    user={user} displayName={displayName} setDisplayName={setDisplayName}
-                                    bio={bio} setBio={setBio} avatarUrl={avatarUrl}
-                                    isEditingProfile={isEditingProfile} setIsEditingProfile={setIsEditingProfile}
-                                    isEditingBio={isEditingBio} setIsEditingBio={setIsEditingBio}
-                                    handleImageUpload={handleImageUpload}
-                                    saveProfileChanges={() => {localStorage.setItem(`gymfit_custom_name_${user.userId}`, displayName); setIsEditingProfile(false);}}
-                                    saveBio={() => {localStorage.setItem(`gymfit_bio_${user.userId}`, bio); setIsEditingBio(false);}}
-                                    getInitials={() => displayName ? displayName[0] : 'U'}
-                                    uploadingImg={uploadingImg}
-                                    setAvatarUrl={setAvatarUrl}
-                                />
+                                <ProfileView user={user} displayName={displayName} setDisplayName={setDisplayName} bio={bio} setBio={setBio} avatarUrl={avatarUrl} isEditingProfile={isEditingProfile} setIsEditingProfile={setIsEditingProfile} isEditingBio={isEditingBio} setIsEditingBio={setIsEditingBio} handleImageUpload={handleImageUpload} saveProfileChanges={() => {localStorage.setItem(`gymfit_custom_name_${user.userId}`, displayName); setIsEditingProfile(false);}} saveBio={() => {localStorage.setItem(`gymfit_bio_${user.userId}`, bio); setIsEditingBio(false);}} getInitials={() => displayName ? displayName[0] : 'U'} uploadingImg={uploadingImg} setAvatarUrl={setAvatarUrl} />
                             )}
                         </>
                     )}

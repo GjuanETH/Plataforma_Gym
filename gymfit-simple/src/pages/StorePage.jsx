@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Plus, Minus, X, ArrowLeft, Trash2, CheckCircle } from 'lucide-react';
 
 // --- IMPORTACIÓN DE IMÁGENES LOCALES ---
@@ -9,66 +9,32 @@ import camisetaImg from '../assets/Camiseta_Oversize.png';
 import strapsImg from '../assets/straps de agarre.jpeg';
 import cinturonImg from '../assets/cinturon.jpg';
 
-export default function StorePage({ onNavigate }) {
+// AHORA RECIBIMOS 'user'
+export default function StorePage({ onNavigate, user }) {
     const [cartOpen, setCartOpen] = useState(false);
-    const [cart, setCart] = useState([]);
     const [categoryFilter, setCategoryFilter] = useState('Todos');
 
-    // --- TUS PRODUCTOS CON FOTOS REALES ---
+    const [cart, setCart] = useState(() => {
+        const savedCart = localStorage.getItem('gymfit_cart');
+        return savedCart ? JSON.parse(savedCart) : [];
+    });
+
+    useEffect(() => {
+        localStorage.setItem('gymfit_cart', JSON.stringify(cart));
+    }, [cart]);
+
+    // --- TUS PRODUCTOS ---
     const products = [
-        { 
-            id: 1, 
-            name: 'Whey Protein Isolate', 
-            price: 180000, 
-            category: 'Suplementos', 
-            image: wheyImg, 
-            desc: 'Proteína pura para recuperación muscular.' 
-        },
-        { 
-            id: 2, 
-            name: 'Creatina Monohidratada', 
-            price: 95000, 
-            category: 'Suplementos', 
-            image: creatinaImg, 
-            desc: 'Aumenta tu fuerza y potencia.' 
-        },
-        { 
-            id: 3, 
-            name: 'Pre-Workout Explosive', 
-            price: 120000, 
-            category: 'Suplementos', 
-            image: preworkoutImg, 
-            desc: 'Energía extrema para tus rutinas.' 
-        },
-        { 
-            id: 4, 
-            name: 'Camiseta Oversize GymFit', 
-            price: 65000, 
-            category: 'Ropa', 
-            image: camisetaImg, 
-            desc: 'Estilo urbano para entrenar cómodo.' 
-        },
-        { 
-            id: 5, 
-            name: 'Straps de Agarre', 
-            price: 45000, 
-            category: 'Accesorios', 
-            image: strapsImg, 
-            desc: 'Mejora tu agarre en peso muerto.' 
-        },
-        { 
-            id: 6, 
-            name: 'Cinturón de Powerlifting', 
-            price: 150000, 
-            category: 'Accesorios', 
-            image: cinturonImg, 
-            desc: 'Protección lumbar para cargas máximas.' 
-        },
+        { id: 1, name: 'Whey Protein Isolate', price: 180000, category: 'Suplementos', image: wheyImg, desc: 'Proteína pura para recuperación muscular.' },
+        { id: 2, name: 'Creatina Monohidratada', price: 95000, category: 'Suplementos', image: creatinaImg, desc: 'Aumenta tu fuerza y potencia.' },
+        { id: 3, name: 'Pre-Workout Explosive', price: 120000, category: 'Suplementos', image: preworkoutImg, desc: 'Energía extrema para tus rutinas.' },
+        { id: 4, name: 'Camiseta Oversize GymFit', price: 65000, category: 'Ropa', image: camisetaImg, desc: 'Estilo urbano para entrenar cómodo.' },
+        { id: 5, name: 'Straps de Agarre', price: 45000, category: 'Accesorios', image: strapsImg, desc: 'Mejora tu agarre en peso muerto.' },
+        { id: 6, name: 'Cinturón de Powerlifting', price: 150000, category: 'Accesorios', image: cinturonImg, desc: 'Protección lumbar para cargas máximas.' },
     ];
 
     const categories = ['Todos', 'Suplementos', 'Ropa', 'Accesorios'];
 
-    // --- LÓGICA DEL CARRITO ---
     const addToCart = (product) => {
         setCart(prev => {
             const existing = prev.find(item => item.id === product.id);
@@ -94,6 +60,16 @@ export default function StorePage({ onNavigate }) {
         }));
     };
 
+    const handleCheckout = () => {
+        if (!user) {
+            if(window.confirm("Debes iniciar sesión para realizar la compra. ¿Ir al login?")) {
+                onNavigate('login');
+            }
+            return;
+        }
+        onNavigate('checkout');
+    };
+
     const totalCart = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
     const filteredProducts = categoryFilter === 'Todos' ? products : products.filter(p => p.category === categoryFilter);
 
@@ -102,20 +78,27 @@ export default function StorePage({ onNavigate }) {
             {/* NAVBAR */}
             <nav style={{padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #222', background: 'rgba(0,0,0,0.8)', position: 'sticky', top: 0, zIndex: 100, backdropFilter: 'blur(10px)'}}>
                 <div style={{display:'flex', alignItems:'center', gap:'20px'}}>
-                    <button onClick={() => onNavigate('landing')} style={{background:'transparent', border:'none', color:'#fff', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px'}}>
+                    {/* LOGICA DEL BOTÓN VOLVER CORREGIDA */}
+                    <button 
+                        onClick={() => onNavigate(user ? 'dashboard' : 'landing')} 
+                        style={{background:'transparent', border:'none', color:'#fff', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px'}}
+                    >
                         <ArrowLeft size={20}/> Volver
                     </button>
                     <h1 style={{margin:0, color:'#E50914', fontWeight:'900', letterSpacing:'1px'}}>GYMFIT STORE</h1>
                 </div>
                 
-                <button onClick={() => setCartOpen(true)} style={{position: 'relative', background: 'transparent', border: 'none', color: 'white', cursor: 'pointer'}}>
-                    <ShoppingCart size={28} />
-                    {cart.length > 0 && (
-                        <span style={{position: 'absolute', top: -8, right: -8, background: '#E50914', color: 'white', borderRadius: '50%', width: '20px', height: '20px', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold'}}>
-                            {cart.reduce((acc, item) => acc + item.qty, 0)}
-                        </span>
-                    )}
-                </button>
+                <div style={{display:'flex', alignItems:'center', gap:'20px'}}>
+                    {user && <span style={{color:'#888', fontSize:'14px'}}>Hola, {user.firstName}</span>}
+                    <button onClick={() => setCartOpen(true)} style={{position: 'relative', background: 'transparent', border: 'none', color: 'white', cursor: 'pointer'}}>
+                        <ShoppingCart size={28} />
+                        {cart.length > 0 && (
+                            <span style={{position: 'absolute', top: -8, right: -8, background: '#E50914', color: 'white', borderRadius: '50%', width: '20px', height: '20px', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold'}}>
+                                {cart.reduce((acc, item) => acc + item.qty, 0)}
+                            </span>
+                        )}
+                    </button>
+                </div>
             </nav>
 
             {/* HEADER */}
@@ -143,7 +126,6 @@ export default function StorePage({ onNavigate }) {
             <div style={{maxWidth: '1200px', margin: '0 auto', padding: '40px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '30px'}}>
                 {filteredProducts.map(product => (
                     <div key={product.id} className="fade-in" style={{background: '#141414', borderRadius: '15px', overflow: 'hidden', border: '1px solid #222', transition: 'transform 0.2s'}}>
-                        {/* Contenedor de Imagen con fondo blanco para que se vea bien el producto */}
                         <div style={{height: '250px', overflow: 'hidden', background: '#fff', padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
                             <img src={product.image} alt={product.name} style={{maxHeight: '100%', maxWidth: '100%', objectFit: 'contain'}} />
                         </div>
@@ -201,13 +183,10 @@ export default function StorePage({ onNavigate }) {
                         <div style={{marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #333'}}>
                             <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '20px', fontSize: '18px', fontWeight: 'bold'}}><span>Total</span><span>${totalCart.toLocaleString()}</span></div>
                             
-                            {/* --- BOTÓN DE PAGO CORREGIDO --- */}
+                            {/* BOTÓN DE PAGO CON VERIFICACIÓN */}
                             <button 
                                 style={{width: '100%', padding: '15px', background: '#E50914', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', gap: '10px', alignItems: 'center'}} 
-                                onClick={() => {
-                                    localStorage.setItem('gymfit_cart', JSON.stringify(cart));
-                                    onNavigate('checkout');
-                                }}
+                                onClick={handleCheckout}
                             >
                                 Proceder al Pago <CheckCircle size={18}/>
                             </button>

@@ -5,12 +5,14 @@ const cors = require('cors');
 // --- IMPORTAR MODELOS (Para evitar errores de Mongoose) ---
 require('./models/Routine'); 
 require('./models/Progress'); 
+require('./models/Assessment'); // <--- NUEVO: Importamos el modelo de Valoraciones
 // ---------------------------------------------------------
 
 // --- IMPORTAR RUTAS ---
 // Asegúrate de que estos archivos existan en la carpeta 'routes'
 const routineRoutes = require('./routes/routines'); 
-const progressRoutes = require('./routes/progress'); // <--- ESTA ES LA QUE FALTABA
+const progressRoutes = require('./routes/progress');
+const assessmentRoutes = require('./routes/assessments'); // <--- NUEVO: Importamos el archivo de rutas
 // ---------------------
 
 const app = express();
@@ -26,7 +28,11 @@ app.use(express.json());
 app.use('/api/v1/training', routineRoutes);
 
 // Rutas de Progreso (Guardar historial, Ver historial)
-app.use('/api/v1/training', progressRoutes); // <--- CONECTANDO EL CABLE
+app.use('/api/v1/training', progressRoutes);
+
+// Rutas de Valoraciones (Assessments)
+// NOTA: El frontend llama a /api/v1/assessments, así que definimos esa ruta base aquí
+app.use('/api/v1/assessments', assessmentRoutes); // <--- NUEVO: Conectamos el cable
 // ------------------
 
 // Conexión a BD

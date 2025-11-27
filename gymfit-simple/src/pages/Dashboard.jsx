@@ -12,6 +12,7 @@ import RoutinesView from '../components/dashboard/RoutinesView';
 import WorkoutSession from '../components/dashboard/WorkoutSession';
 import OrdersView from '../components/dashboard/OrdersView';
 import ZenModeView from '../components/dashboard/ZenModeView';
+import AssessmentsView from '../components/dashboard/AssessmentsView'; // <--- IMPORTACIÓN NUEVA
 
 import ZenMusic from '../assets/peaceful solitude [F02iMCEEQWs].mp3';
 
@@ -199,15 +200,12 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
         setRealStats({ totalSessions, totalKg, currentStreak, weeklyActivity: orderedChartData, historyData, photos, radarData, personalRecords, activityDates });
     };
 
-    // --- CORRECCIÓN AQUÍ: ELIMINA LA SOLICITUD DE LA LISTA VISUAL ---
     const handleRespondRequest = async (reqId, status) => {
         try { 
             await clientService.respondRequest(reqId, status); 
-            
-            // Actualizamos el estado para que desaparezca la tarjeta
+            // Eliminamos la solicitud de la lista visualmente
             setPendingRequests(prev => prev.filter(req => req._id !== reqId));
 
-            // Opcional: Recargar lista de entrenadores si aceptó
             if(status === 'accepted') {
                 chatService.getTrainers().then(data => setTrainersList(data));
                 alert("¡Entrenador aceptado!");
@@ -300,6 +298,14 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
                                     startWorkoutSession={handleStartSession}
                                     linkedClients={linkedClients}
                                     onActivateZenMode={handleActivateZenMode}
+                                />
+                            )}
+                            
+                            {/* --- AQUÍ SE RENDERIZA LA NUEVA VISTA DE VALORACIONES --- */}
+                            {activeTab === 'assessments' && (
+                                <AssessmentsView 
+                                    user={user} 
+                                    linkedClients={linkedClients} 
                                 />
                             )}
 

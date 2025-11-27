@@ -225,3 +225,27 @@ export const clientService = {
         }
     }
 };
+
+export const assessmentService = {
+    // Guardar una nueva valoración (Entrenador)
+    saveAssessment: async (data) => {
+        try {
+            const response = await api.post('/assessments', data);
+            return response.data;
+        } catch (error) {
+            console.error("Error guardando valoración:", error);
+            throw error;
+        }
+    },
+
+    // Obtener la última valoración de un cliente (Cliente o Entrenador)
+    getLatestAssessment: async (clientId) => {
+        try {
+            const response = await api.get(`/assessments/latest/${clientId}`);
+            return response.data;
+        } catch (error) {
+            console.error("Error obteniendo valoración:", error);
+            return null; // Si no hay, devuelve null sin romper
+        }
+    }
+};

@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Activity, MessageSquare, User, LogOut, Package, Users } from 'lucide-react';
+import { LayoutDashboard, Activity, MessageSquare, User, LogOut, Package, Users, ClipboardList } from 'lucide-react'; // <--- Importamos ClipboardList
 
 export default function Sidebar({ user, activeTab, setActiveTab, onLogout, displayName, avatarUrl, getInitials, setAvatarUrl, onNavigate }) {
     
@@ -34,11 +34,16 @@ export default function Sidebar({ user, activeTab, setActiveTab, onLogout, displ
 
             {/* Menú de Navegación */}
             <nav className="sidebar-nav">
-                {/* CAMBIO AQUÍ: Lógica para cambiar texto e icono según el rol */}
                 <button className={`nav-item ${activeTab === 'routines' ? 'active' : ''}`} onClick={() => handleTabClick('routines')}>
                     {user.role === 'Trainer' ? <Users size={20} /> : <LayoutDashboard size={20} />}
                     {user.role === 'Trainer' ? ' Gestión Clientes' : ' Mis Rutinas'}
                 </button>
+
+                {/* --- NUEVO BOTÓN: VALORACIONES --- */}
+                <button className={`nav-item ${activeTab === 'assessments' ? 'active' : ''}`} onClick={() => handleTabClick('assessments')}>
+                    <ClipboardList size={20} /> Valoraciones
+                </button>
+                {/* -------------------------------- */}
                 
                 {user.role === 'Client' && (
                     <>

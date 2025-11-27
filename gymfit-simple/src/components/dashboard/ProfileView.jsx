@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, User as UserIcon, LogOut, Check, Edit, Save, X } from 'lucide-react';
+import { Camera, LogOut, Edit, Save, X } from 'lucide-react';
 
 export default function ProfileView({ 
     user, 
@@ -17,7 +17,7 @@ export default function ProfileView({
     saveBio,
     getInitials,
     uploadingImg,
-    onLogout // Función para cerrar sesión
+    onLogout 
 }) {
 
     return (
@@ -108,18 +108,6 @@ export default function ProfileView({
                 ) : (
                     <p style={{color:'#ccc', lineHeight:'1.5'}}>{bio}</p>
                 )}
-            </div>
-
-            {/* Estadísticas Básicas */}
-            <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap:'20px'}}>
-                <div className="stat-box" style={{background:'#141414', padding:'20px', borderRadius:'10px', borderLeft:'3px solid #E50914'}}>
-                    <h5 style={{margin:0, color:'#888', fontSize:'12px'}}>Rol</h5>
-                    <p style={{margin:'5px 0 0 0', fontWeight:'bold'}}>{user.role}</p>
-                </div>
-                <div className="stat-box" style={{background:'#141414', padding:'20px', borderRadius:'10px', borderLeft:'3px solid #E50914'}}>
-                    <h5 style={{margin:0, color:'#888', fontSize:'12px'}}>Microservicio</h5>
-                    <p style={{margin:'5px 0 0 0', fontWeight:'bold'}}>Auth Service</p>
-                </div>
             </div>
         </div>
     );

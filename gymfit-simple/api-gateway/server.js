@@ -35,8 +35,9 @@ app.use(['/api/v1/auth', '/api/v1/chat', '/api/v1/clients'], createProxyMiddlewa
     }
 }));
 
-// --- TRAINING SERVICE (Va al puerto 3002) ---
-app.use('/api/v1/training', createProxyMiddleware({
+// --- TRAINING SERVICE & ASSESSMENTS (Va al puerto 3002) ---
+// CAMBIO AQUÍ: Agregamos '/api/v1/assessments' al arreglo para que pase
+app.use(['/api/v1/training', '/api/v1/assessments'], createProxyMiddleware({
     target: TRAINING_SERVICE_URL,
     changeOrigin: true,
     onError: (err, req, res) => {
@@ -49,5 +50,5 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
     console.log(`Gateway corriendo en el puerto ${PORT}`);
     console.log(` -> Redirigiendo Auth/Chat a: ${AUTH_SERVICE_URL}`);
-    console.log(` -> Redirigiendo Training a: ${TRAINING_SERVICE_URL}`);
+    console.log(` -> Redirigiendo Training/Assessments a: ${TRAINING_SERVICE_URL}`);
 });

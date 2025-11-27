@@ -1,70 +1,31 @@
+version: '3'
 services:
-  # 1. Base de Datos para Usuarios (MongoDB)
-  auth-db:
-    image: mongo:latest
-    container_name: gymfit-auth-db
-    ports:
-      - "27017:27017"
-    volumes:
-      - auth-data:/data/db
-
-  # 2. Servicio de Autenticación (Login/Registro)
-  auth-service:
-    build: ./auth-service
-    container_name: gymfit-auth-service
-    ports:
-      - "3001:3001"
-    environment:
-      - PORT=3001
-      - MONGO_URI=mongodb://auth-db:27017/auth_service_db
-      - JWT_SECRET=super_secreto_gymfit_key
-    depends_on:
-      - auth-db
-    volumes:
-      - ./auth-service:/usr/src/app
-      - /usr/src/app/node_modules
-
-  # 3. Base de Datos de Entrenamientos
-  training-db:
-    image: mongo:latest
-    container_name: gymfit-training-db
-    ports:
-      - "27018:27017" # Nota el puerto diferente (27018)
-    volumes:
-      - training-data:/data/db
-
-  # 4. Servicio de Entrenamientos
-  training-services:
-    build: ./training-services
-    container_name: gymfit-training-services
-    ports:
-      - "3002:3002"
-    environment:
-      - PORT=3002
-      - MONGO_URI=mongodb://training-db:27017/training_service_db
-    depends_on:
-      - training-db
-    volumes:
-      - ./training-services:/usr/src/app
-      - /usr/src/app/node_modules
-
-  # 3. API Gateway (La puerta de entrada)
+  # 1. API Gateway (La única puerta abierta al público)
   api-gateway:
-    build: ./api-gateway
-    container_name: gymfit-api-gateway
+    image: gjuaneth/gymfit-gateway:latest  # <--- CAMBIA 'tuusuario' por tu usuario de Docker Hub
+    restart: always
     ports:
-      - "8080:8080" # Tu frontend hablará con este puerto
+      - "80:8080" # Mapea el puerto 80 (web estándar) al 8080 de tu app
     environment:
       - PORT=8080
       - AUTH_SERVICE_URL=http://auth-service:3001
       - TRAINING_SERVICE_URL=http://training-services:3002
 
-    depends_on:
-      - auth-service
-    volumes:
-      - ./api-gateway:/usr/src/app
-      - /usr/src/app/node_modules
+  # 2. Auth Service (Privado)
+  auth-service:
+    image: gjuaneth/gymfit-auth:latest    # <--- CAMBIA 'tuusuario'
+    restart: always
+    environment:
+      - PORT=3001
+      # Azure inyectará estas variables por seguridad, 
+      # pero las dejamos aquí referenciadas.
+      - MONGO_URI=${MONGO_URI} 
+      - JWT_SECRET=${JWT_SECRET}
 
-volumes:
-  auth-data:
-  training-data:
+  # 3. Training Service (Privado)
+  training-services:
+    image: gjuaneth/gymfit-training:latest # <--- CAMBIA 'tuusuario'
+    restart: always
+    environment:
+      - PORT=3002
+      - MONGO_URI=${MONGO_URI}

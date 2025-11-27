@@ -1,5 +1,4 @@
 import React from 'react';
-// Si creaste LandingPage.css impórtalo aquí, si no, usará App.css global
 import './LandingPage.css'; 
 
 export default function LandingPage({ onNavigate }) {
@@ -7,10 +6,14 @@ export default function LandingPage({ onNavigate }) {
     <div style={{ width: '100%', overflowX: 'hidden' }}>
       {/* NAVBAR */}
       <nav className="navbar">
-        <a href="#" className="nav-logo">GYMFIT</a>
+        <a href="#" className="nav-logo" onClick={() => onNavigate('landing')}>GYMFIT</a>
         <div className="nav-links">
           <a href="#home" className="nav-link">Inicio</a>
           <a href="#about" className="nav-link">Nosotros</a>
+          {/* BOTÓN TIENDA AGREGADO */}
+          <button onClick={() => onNavigate('store')} className="nav-link" style={{background:'transparent', border:'none', cursor:'pointer', fontSize:'16px'}}>
+             Tienda
+          </button>
           <a href="#features" className="nav-link">Servicios</a>
           <a href="#contact" className="nav-link">Contacto</a>
         </div>
@@ -25,7 +28,6 @@ export default function LandingPage({ onNavigate }) {
           <span className="hero-tagline">Tu evolución comienza hoy</span>
           <h1 className="brand-title">DOMINA<br />TU CUERPO</h1>
           <p className="auth-subtitle">La plataforma definitiva para gestionar tus entrenamientos.</p>
-          {/* Importante: z-index alto para que funcione el clic */}
           <button className="btn-primary" style={{position:'relative', zIndex:100}} onClick={() => onNavigate('login')}>
             EMPEZAR AHORA
           </button>

@@ -2,33 +2,39 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
-// Importación de rutas
-const routineRoutes = require('./routes/routines');
-const progressRoutes = require('./routes/progress'); 
+// --- IMPORTAR MODELOS (Para evitar errores de Mongoose) ---
+require('./models/Routine'); 
+require('./models/Progress'); 
+// ---------------------------------------------------------
+
+// --- IMPORTAR RUTAS ---
+// Asegúrate de que estos archivos existan en la carpeta 'routes'
+const routineRoutes = require('./routes/routines'); 
+const progressRoutes = require('./routes/progress'); // <--- ESTA ES LA QUE FALTABA
+// ---------------------
 
 const app = express();
 
-// Middlewares
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
 
-// Conexión a Base de Datos
+// --- USAR RUTAS ---
+// El Gateway envía la petición con el prefijo /api/v1/training
+// Así que montamos las rutas en ese path base.
+
+// Rutas de Rutinas (Crear, Ver)
+app.use('/api/v1/training', routineRoutes);
+
+// Rutas de Progreso (Guardar historial, Ver historial)
+app.use('/api/v1/training', progressRoutes); // <--- CONECTANDO EL CABLE
+// ------------------
+
+// Conexión a BD
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/training_service_db';
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ Training Service conectado a MongoDB'))
-  .catch(err => console.error('❌ Error MongoDB:', err));
-
-// --- DEFINICIÓN DE RUTAS ---
-// Nota: Es mejor definir las rutas específicas primero para evitar conflictos de coincidencia
-
-// 1. Ruta para Progreso (Log de ejercicios)
-// Url final: http://localhost:8080/api/v1/training/progress
-app.use('/api/v1/training/progress', progressRoutes);
-
-// 2. Ruta para Rutinas (Crear, Leer, Borrar)
-// Url final: http://localhost:8080/api/v1/training
-app.use('/api/v1/training', routineRoutes);
+  .catch(err => console.error('❌ Error conectando a MongoDB:', err));
 
 const PORT = process.env.PORT || 3002;
-app.listen(PORT, () => console.log(`💪 Training Service corriendo en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Training Service corriendo en puerto ${PORT}`));

@@ -1,27 +1,25 @@
-import { useState } from 'react'; // Agregamos useEffect por si acaso, aunque aquí usaremos lazy state
+import { useState } from 'react';
 import './App.css';
 
 // Importamos las páginas
-import LandingPage from './pages/LandingPage/LandingPage';
+import LandingPage from './pages/LandingPage/LandingPage'; // Asegúrate de que la ruta sea correcta
 import AuthPage from './pages/AuthPage/AuthPage';
 import Dashboard from './pages/Dashboard';
+import StorePage from './pages/StorePage'; // <--- IMPORTAMOS LA TIENDA
+import CheckoutPage from './pages/CheckoutPage';
 
 import { authService } from './api';
 
 function App() {
-  // 1. PRIMERO: Inicializamos el usuario (esto ya lo tenías bien)
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('gymfit_user');
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  // 2. SEGUNDO (LA CORRECCIÓN): Inicializamos la vista basándonos en si hay usuario o no
   const [currentView, setCurrentView] = useState(() => {
-    // Si existe el usuario en localStorage, vamos directo al dashboard
     if (localStorage.getItem('gymfit_user')) {
       return 'dashboard';
     }
-    // Si no, vamos al landing
     return 'landing';
   });
 
@@ -37,13 +35,18 @@ function App() {
     setCurrentView('landing');
   };
 
-  // RENDERIZADO
+  // --- RENDERIZADO DE VISTAS ---
+
   if (currentView === 'landing') {
     return <LandingPage onNavigate={setCurrentView} />;
   }
 
+  // NUEVA VISTA: TIENDA
+  if (currentView === 'store') {
+    return <StorePage onNavigate={setCurrentView} />;
+  }
+
   if (currentView === 'login' || currentView === 'register') {
-    // Pequeña protección: si el usuario intenta ir a login estando logueado
     if (user && currentView === 'login') {
        setCurrentView('dashboard');
        return null;
@@ -52,12 +55,20 @@ function App() {
   }
 
   if (currentView === 'dashboard') {
-    // Protección extra: si intenta ir al dashboard sin usuario, lo mandamos a login
     if (!user) {
         setCurrentView('login');
         return null;
     }
     return <Dashboard user={user} onLogout={handleLogout} />;
+  }
+
+  if (currentView === 'store') {
+    return <StorePage onNavigate={setCurrentView} />;
+  }
+
+  // AGREGAR ESTO AQUÍ:
+  if (currentView === 'checkout') {
+    return <CheckoutPage onNavigate={setCurrentView} />;
   }
 
   return null;

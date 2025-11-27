@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { authService, trainingService, chatService, clientService } from '../api';
-import { User } from 'lucide-react';
+import { User, ShoppingBag } from 'lucide-react';
 import './Dashboard.css';
 
 // Las rutas son relativas a src/pages/
@@ -12,7 +12,6 @@ import RoutinesView from '../components/dashboard/RoutinesView';
 import WorkoutSession from '../components/dashboard/WorkoutSession';
 import OrdersView from '../components/dashboard/OrdersView';
 
-// RECIBIMOS onNavigate
 export default function Dashboard({ user, onLogout, onNavigate }) {
     const API_KEY_IMGBB = '5ddc683f72b1a8e246397ff506b520d5'; 
 
@@ -37,12 +36,10 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
     const [newMessage, setNewMessage] = useState('');
 
     useEffect(() => {
-        // Carga de datos de perfil desde localStorage
         setBio(localStorage.getItem(`gymfit_bio_${user.userId}`) || (user.role === 'Trainer' ? "Entrenador certificado." : "Atleta en proceso"));
         setDisplayName(localStorage.getItem(`gymfit_custom_name_${user.userId}`) || user.firstName);
         setAvatarUrl(localStorage.getItem(`gymfit_avatar_${user.userId}`));
 
-        // Carga de datos de microservicios
         if (user.role === 'Client') {
             loadRoutines(); 
             trainingService.getClientHistory(user.userId).then(logs => calculateRealStats(logs));
@@ -155,7 +152,7 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
         const personalRecords = Object.keys(prMap).map(k => ({ name: k.charAt(0).toUpperCase() + k.slice(1), weight: prMap[k] })).sort((a,b)=>b.weight-a.weight).slice(0,5);
 
         const historyData = logs.slice(0, 20).reverse().map(l => ({ name: l.exerciseName.substring(0, 4), kg: l.weightUsed }));
-        const photos = logs.filter(l => l.photoUrl).map(l => ({ url: l.photoUrl, date: l.date || log.createdAt })).sort((a,b)=>new Date(b.date)-new Date(a.date));
+        const photos = logs.filter(l => l.photoUrl).map(l => ({ url: l.photoUrl, date: l.date || l.createdAt })).sort((a,b)=>new Date(b.date)-new Date(a.date));
 
         setRealStats({ totalSessions, totalKg, currentStreak, weeklyActivity: orderedChartData, historyData, photos, radarData, personalRecords, activityDates }); 
     };
@@ -189,7 +186,26 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
 
     return (
         <div className="dashboard-layout">
-            <nav className="navbar"><div className="nav-logo">GYMFIT</div><div className="nav-links"><span className="nav-user-badge"><User size={16}/> {user.role}</span></div></nav>
+            {/* BARRA DE NAVEGACIÓN COMPLETA */}
+            <nav className="navbar" style={{justifyContent: 'space-between'}}>
+                {/* LOGO GYMFIT -> Vuelve a Landing */}
+                <div className="nav-logo" onClick={() => onNavigate('landing')} style={{cursor:'pointer'}}>GYMFIT</div> 
+                
+                <div className="nav-links" style={{flexGrow: 0}}>
+                    {/* ENLACES PÚBLICOS */}
+                    <button className="nav-link" onClick={() => onNavigate('landing')} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px', color:'white'}}>Inicio</button>
+                    <button className="nav-link" onClick={() => onNavigate('landing')} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px', color:'white'}}>Nosotros</button>
+                    <button className="nav-link" onClick={() => onNavigate('landing')} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px', color:'white'}}>Contacto</button>
+
+                    {/* SEPARADOR y Botón Tienda */}
+                    <div style={{width:'1px', height:'20px', background:'#333', margin:'0 15px'}}></div>
+                    
+                    <button onClick={() => onNavigate('store')} style={{background: 'transparent', border: 'none', color: '#E50914', cursor: 'pointer', display:'flex', alignItems:'center', gap:'5px', fontSize:'16px'}}>
+                        <ShoppingBag size={18}/> Tienda
+                    </button>
+                    <span className="nav-user-badge"><User size={16}/> {user.role}</span>
+                </div>
+            </nav>
             <div className="dashboard-main">
                 <Sidebar 
                     user={user} activeTab={activeTab} setActiveTab={setActiveTab} onLogout={onLogout} onNavigate={onNavigate}
@@ -222,7 +238,18 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
                             )}
 
                             {activeTab === 'profile' && (
-                                <ProfileView user={user} displayName={displayName} setDisplayName={setDisplayName} bio={bio} setBio={setBio} avatarUrl={avatarUrl} isEditingProfile={isEditingProfile} setIsEditingProfile={setIsEditingProfile} isEditingBio={isEditingBio} setIsEditingBio={setIsEditingBio} handleImageUpload={handleImageUpload} saveProfileChanges={() => {localStorage.setItem(`gymfit_custom_name_${user.userId}`, displayName); setIsEditingProfile(false);}} saveBio={() => {localStorage.setItem(`gymfit_bio_${user.userId}`, bio); setIsEditingBio(false);}} getInitials={() => displayName ? displayName[0] : 'U'} uploadingImg={uploadingImg} setAvatarUrl={setAvatarUrl} />
+                                <ProfileView 
+                                    user={user} displayName={displayName} setDisplayName={setDisplayName} bio={bio} setBio={setBio} avatarUrl={avatarUrl} 
+                                    isEditingProfile={isEditingProfile} setIsEditingProfile={setIsEditingProfile} 
+                                    isEditingBio={isEditingBio} setIsEditingBio={setIsEditingBio} 
+                                    handleImageUpload={handleImageUpload} 
+                                    saveProfileChanges={() => {localStorage.setItem(`gymfit_custom_name_${user.userId}`, displayName); setIsEditingProfile(false);}} 
+                                    saveBio={() => {localStorage.setItem(`gymfit_bio_${user.userId}`, bio); setIsEditingBio(false);}} 
+                                    getInitials={() => displayName ? displayName[0] : 'U'} 
+                                    uploadingImg={uploadingImg} 
+                                    setAvatarUrl={setAvatarUrl} 
+                                    onLogout={onLogout}
+                                />
                             )}
                         </>
                     )}

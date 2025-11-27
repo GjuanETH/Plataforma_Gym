@@ -1,43 +1,124 @@
 import React from 'react';
-import { Camera, Check, X, Edit3, Save } from 'lucide-react';
+import { Camera, User as UserIcon, LogOut, Check, Edit, Save, X } from 'lucide-react';
 
 export default function ProfileView({ 
-    user, displayName, setDisplayName, bio, setBio, avatarUrl, 
-    isEditingProfile, setIsEditingProfile, isEditingBio, setIsEditingBio, 
-    handleImageUpload, saveProfileChanges, saveBio, getInitials, uploadingImg 
+    user, 
+    displayName, 
+    setDisplayName, 
+    bio, 
+    setBio, 
+    avatarUrl,
+    isEditingProfile, 
+    setIsEditingProfile,
+    isEditingBio, 
+    setIsEditingBio,
+    handleImageUpload,
+    saveProfileChanges,
+    saveBio,
+    getInitials,
+    uploadingImg,
+    onLogout // RECIBIMOS onLogout
 }) {
+
     return (
-        <div className="fade-in profile-view">
-            <div className="profile-header-card">
-                <div className="profile-cover"></div>
-                <div className="profile-content">
-                    <div className="profile-avatar-wrapper">
-                        {avatarUrl ? (
-                            <img src={avatarUrl} alt="Profile" className="profile-img-real" />
-                        ) : (
-                            <div className="profile-avatar-xl">{getInitials()}</div>
-                        )}
-                        {isEditingProfile && <label className="avatar-edit-overlay"><Camera size={24} color="white"/><input type="file" onChange={handleImageUpload} hidden/></label>}
-                        {uploadingImg && <div className="uploading-badge">Subiendo...</div>}
+        <div className="fade-in" style={{maxWidth: '800px', margin: '0 auto', padding: '20px'}}>
+            <h2 className="page-title">Mi Perfil</h2>
+
+            {/* Tarjeta Principal de Perfil */}
+            <div className="profile-card" style={{background:'#141414', padding:'30px', borderRadius:'15px', border:'1px solid #222', marginBottom:'30px'}}>
+                <div style={{display:'flex', alignItems:'center', gap:'30px', flexWrap:'wrap'}}>
+                    {/* Sección Avatar */}
+                    <div className="avatar-upload-container" style={{position:'relative', width:'120px', height:'120px', flexShrink:0}}>
+                        <div style={{width:'120px', height:'120px', borderRadius:'50%', overflow:'hidden', background: '#333', display:'flex', alignItems:'center', justifyContent:'center', border:'3px solid #E50914'}}>
+                            {avatarUrl ? (
+                                <img src={avatarUrl} alt="Avatar" style={{width:'100%', height:'100%', objectFit:'cover'}} />
+                            ) : (
+                                <div style={{color:'white', fontSize:'36px', fontWeight:'bold'}}>{getInitials()}</div>
+                            )}
+                        </div>
+                        <input type="file" id="avatar-input" accept="image/*" style={{display:'none'}} onChange={handleImageUpload} disabled={uploadingImg}/>
+                        <label htmlFor="avatar-input" style={{position:'absolute', bottom:0, right:0, background:'#E50914', color:'white', borderRadius:'50%', padding:'8px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 3px #141414'}}>
+                            <Camera size={18} />
+                        </label>
+                        {uploadingImg && <div style={{position:'absolute', inset:0, background:'rgba(0,0,0,0.7)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center'}}><LogOut size={24} className="spin" color="#fff"/></div>}
                     </div>
-                    <div className="profile-names">
-                        {isEditingProfile ? <input className="input-field-transparent" value={displayName} onChange={(e)=>setDisplayName(e.target.value)} autoFocus/> : <h1 style={{color:'white', margin:0}}>{displayName}</h1>}
-                        <span className="role-badge">{user.role}</span>
-                    </div>
-                    <div className="profile-actions">
-                        {isEditingProfile ? (
-                            <><button className="btn-icon-action save" onClick={saveProfileChanges}><Check size={18}/></button>
-                              <button className="btn-icon-action cancel" onClick={()=>setIsEditingProfile(false)}><X size={18}/></button></>
-                        ) : (
-                            <button className="btn-edit-profile" onClick={()=>setIsEditingProfile(true)}><Edit3 size={16}/> Editar Perfil</button>
-                        )}
+
+                    {/* Información y Edición */}
+                    <div style={{flex:1}}>
+                        <div style={{display:'flex', alignItems:'center', marginBottom:'10px'}}>
+                            {isEditingProfile ? (
+                                <input 
+                                    type="text" 
+                                    value={displayName} 
+                                    onChange={(e) => setDisplayName(e.target.value)} 
+                                    style={{padding:'5px', fontSize:'24px', fontWeight:'bold', background:'transparent', border:'1px solid #E50914', color:'white'}}
+                                />
+                            ) : (
+                                <h3 style={{margin:0, fontSize:'24px', fontWeight:'bold'}}>{displayName}</h3>
+                            )}
+                            
+                            <button 
+                                onClick={() => isEditingProfile ? saveProfileChanges() : setIsEditingProfile(true)} 
+                                style={{marginLeft:'10px', background:'transparent', border:'none', cursor:'pointer', color:'#888'}}
+                            >
+                                {isEditingProfile ? <Save size={20} color="#0f0"/> : <Edit size={18}/>}
+                            </button>
+                            {isEditingProfile && (
+                                <button onClick={() => setIsEditingProfile(false)} style={{marginLeft:'5px', background:'transparent', border:'none', cursor:'pointer', color:'#888'}}>
+                                    <X size={18}/>
+                                </button>
+                            )}
+                        </div>
+                        
+                        <p style={{color:'#888', margin:'0 0 15px 0'}}>{user.role === 'Trainer' ? 'Entrenador' : 'Cliente'} | ID: {user.userId}</p>
+
+                        {/* Botón de Logout */}
+                        <button 
+                            onClick={onLogout} 
+                            style={{padding:'10px 20px', background:'#440000', color:'white', border:'none', borderRadius:'8px', cursor:'pointer', display:'flex', alignItems:'center', gap:'10px', fontSize:'14px', transition:'background 0.3s'}}
+                            onMouseEnter={(e) => e.target.style.background = '#E50914'}
+                            onMouseLeave={(e) => e.target.style.background = '#440000'}
+                        >
+                            <LogOut size={16}/> Cerrar Sesión
+                        </button>
+
                     </div>
                 </div>
             </div>
-            <div className="profile-grid-layout">
-                <div className="bio-card">
-                    <div className="card-header-flex"><h3>Biografía</h3><button className="btn-icon-small" onClick={()=>isEditingBio?saveBio():setIsEditingBio(true)}>{isEditingBio?<Save size={16}/>:<Edit3 size={16}/>}</button></div>
-                    {isEditingBio?<textarea className="input-field" rows="4" value={bio} onChange={e=>setBio(e.target.value)}/>:<p style={{color:'#ccc', lineHeight:'1.5'}}>{bio}</p>}
+
+            {/* Sección Biografía */}
+            <div className="bio-card" style={{background:'#141414', padding:'30px', borderRadius:'15px', border:'1px solid #222', marginBottom:'30px'}}>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid #333', paddingBottom:'10px', marginBottom:'15px'}}>
+                    <h4 style={{margin:0, color:'#E50914'}}>Acerca de Mí</h4>
+                    <button 
+                        onClick={() => isEditingBio ? saveBio() : setIsEditingBio(true)} 
+                        style={{background:'transparent', border:'none', cursor:'pointer', color:'#888'}}
+                    >
+                        {isEditingBio ? <Save size={20} color="#0f0"/> : <Edit size={18}/>}
+                    </button>
+                </div>
+                
+                {isEditingBio ? (
+                    <textarea 
+                        value={bio} 
+                        onChange={(e) => setBio(e.target.value)} 
+                        rows="4"
+                        style={{width:'100%', padding:'10px', background:'#0a0a0a', border:'1px solid #333', color:'white', borderRadius:'8px', resize:'none'}}
+                    />
+                ) : (
+                    <p style={{color:'#ccc', lineHeight:'1.5'}}>{bio}</p>
+                )}
+            </div>
+
+            {/* Estadísticas Básicas */}
+            <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap:'20px'}}>
+                <div className="stat-box" style={{background:'#141414', padding:'20px', borderRadius:'10px', borderLeft:'3px solid #E50914'}}>
+                    <h5 style={{margin:0, color:'#888', fontSize:'12px'}}>Rol</h5>
+                    <p style={{margin:'5px 0 0 0', fontWeight:'bold'}}>{user.role}</p>
+                </div>
+                <div className="stat-box" style={{background:'#141414', padding:'20px', borderRadius:'10px', borderLeft:'3px solid #E50914'}}>
+                    <h5 style={{margin:0, color:'#888', fontSize:'12px'}}>Microservicio</h5>
+                    <p style={{margin:'5px 0 0 0', fontWeight:'bold'}}>Auth Service</p>
                 </div>
             </div>
         </div>

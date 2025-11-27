@@ -3,9 +3,7 @@ import { LayoutDashboard, Activity, MessageSquare, User, LogOut, Package, Shoppi
 
 export default function Sidebar({ user, activeTab, setActiveTab, onLogout, displayName, avatarUrl, getInitials, setAvatarUrl, onNavigate }) {
     
-    // Función para manejar clics en las pestañas internas
     const handleTabClick = (tabName) => {
-        // La navegación interna usa setActiveTab
         setActiveTab(tabName);
     };
 
@@ -46,10 +44,7 @@ export default function Sidebar({ user, activeTab, setActiveTab, onLogout, displ
                             <Activity size={20} /> Estadísticas
                         </button>
                         
-                        {/* BOTÓN IR A TIENDA (USA onNavigate) */}
-                        <button className="nav-item" onClick={() => onNavigate('store')} style={{color:'#E50914'}}>
-                            <ShoppingBag size={20} /> Ir a Tienda
-                        </button>
+                        {/* Botón Ir a Tienda ELIMINADO de aquí (va al NavBar superior) */}
 
                         <button className={`nav-item ${activeTab === 'orders' ? 'active' : ''}`} onClick={() => handleTabClick('orders')}>
                             <Package size={20} /> Mis Pedidos

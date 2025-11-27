@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import './App.css';
 
+// Importamos las páginas. Rutas corregidas asumiendo que App.jsx está en src/
 import LandingPage from './pages/LandingPage/LandingPage'; 
 import AuthPage from './pages/AuthPage/AuthPage';
 import Dashboard from './pages/Dashboard';
@@ -10,16 +11,21 @@ import CheckoutPage from './pages/CheckoutPage';
 import { authService } from './api';
 
 function App() {
+  // 1. INICIALIZACIÓN DEL USUARIO
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('gymfit_user');
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
+  // 2. CORRECCIÓN DE REDIRECCIÓN INICIAL
+  // Si existe el token, vamos al dashboard, si no, SIEMPRE vamos al landing.
   const [currentView, setCurrentView] = useState(() => {
-    if (localStorage.getItem('gymfit_user')) {
+    // Si hay token, asumimos que debe ir al dashboard (área privada)
+    if (localStorage.getItem('gymfit_token')) {
       return 'dashboard';
     }
-    return 'landing';
+    // Si no hay token, el valor por defecto es la página pública de inicio
+    return 'landing'; 
   });
 
   const handleLoginSuccess = () => {
@@ -31,10 +37,10 @@ function App() {
   const handleLogout = () => {
     authService.logout();
     setUser(null);
-    setCurrentView('landing');
+    setCurrentView('landing'); // Volver al landing tras cerrar sesión
   };
 
-  // --- RENDERIZADO ---
+  // --- RENDERIZADO DE VISTAS ---
 
   if (currentView === 'landing') {
     return <LandingPage onNavigate={setCurrentView} />;
@@ -58,10 +64,10 @@ function App() {
 
   if (currentView === 'dashboard') {
     if (!user) {
+        // Doble verificación de seguridad
         setCurrentView('login');
         return null;
     }
-    // CAMBIO AQUÍ: Pasamos onNavigate al Dashboard
     return <Dashboard user={user} onLogout={handleLogout} onNavigate={setCurrentView} />;
   }
 

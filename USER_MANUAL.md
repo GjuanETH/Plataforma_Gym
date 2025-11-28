@@ -10,7 +10,9 @@ GYM FIT es tu compañero digital para alcanzar tus objetivos fitness. Esta guía
 
 ### 1. Acceso a la Plataforma
 
-**Visitanos en:** [gymfit.com](https://gymfit.com) o abre tu navegador y ve a la dirección de la plataforma.
+**Visitanos en:** https://black-moss-056cc280f.3.azurestaticapps.net/ o abre tu navegador y ve a la dirección de la plataforma.
+
+(Para que funcione la pagina, el backend debe estar corriendo en azure portal)
 
 ### 2. Registro de Cuenta
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Search, User, Save, Ruler, Weight, Activity, ChevronLeft, Calendar, FileText, Target } from 'lucide-react';
 import { assessmentService } from '../../api';
 
@@ -20,20 +20,14 @@ export default function AssessmentsView({ user, linkedClients }) {
         observations: ''
     });
 
-    // --- EFECTO: CARGAR DATOS AL INICIO ---
-    useEffect(() => {
-        if (user.role === 'Client') {
-            loadAssessmentData(user.userId);
-        }
-    }, [user]);
-
-    // Función para cargar datos de la API
-    const loadAssessmentData = async (clientId) => {
+    // Función para cargar datos de la API (Encapsulada en useCallback)
+    const loadAssessmentData = useCallback(async (clientId) => {
         setLoading(true);
         try {
             const data = await assessmentService.getLatestAssessment(clientId);
             if (data) {
                 setCurrentAssessment(data);
+                // Solo precargar el formulario si es el entrenador el que ve el registro
                 if (user.role === 'Trainer') {
                     setFormData({
                         weight: data.weight || '',
@@ -46,6 +40,7 @@ export default function AssessmentsView({ user, linkedClients }) {
                 }
             } else {
                 setCurrentAssessment(null);
+                // Resetear formulario si no hay datos y es el entrenador
                 if (user.role === 'Trainer') setFormData({ weight: '', height: '', bodyFat: '', goal: 'Perdida de Peso', dietType: 'Flexible', observations: '' });
             }
         } catch (error) {
@@ -53,8 +48,16 @@ export default function AssessmentsView({ user, linkedClients }) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [user.role]); // Depende del rol del usuario
 
+    // --- EFECTO: CARGAR DATOS AL INICIO ---
+    useEffect(() => {
+        if (user.role === 'Client') {
+            loadAssessmentData(user.userId);
+        }
+    }, [user.role, user.userId, loadAssessmentData]); // Incluimos loadAssessmentData
+
+    // ... (El resto de las funciones se mantienen igual)
     const handleSelectClient = (client) => {
         setSelectedClient(client);
         loadAssessmentData(client._id);
@@ -153,6 +156,7 @@ export default function AssessmentsView({ user, linkedClients }) {
     // VISTA 2: FORMULARIO Y DATOS
     // ----------------------------------------------------------------------
     const isTrainer = user.role === 'Trainer';
+    // Si es entrenador, usamos formData (para editar), si es cliente, usamos currentAssessment (para ver)
     const displayData = isTrainer ? formData : currentAssessment; 
     
     const StatsCard = () => (
@@ -164,12 +168,14 @@ export default function AssessmentsView({ user, linkedClients }) {
                 </span>
             </div>
 
-            {!currentAssessment && !isTrainer ? (
+            {/* Renderiza el mensaje de 'Sin registros' si NO hay datos Y es Cliente */}
+            {!currentAssessment && !isTrainer ? ( 
                 <div style={{textAlign:'center', padding:'40px', color:'#666'}}>
                     <Activity size={48} style={{marginBottom:'10px', opacity:0.5}}/>
                     <p>Tu entrenador aún no ha cargado tu valoración física.</p>
                 </div>
             ) : (
+                // Si SÍ hay datos (currentAssessment) O si es entrenador (isTrainer), muestra la tarjeta
                 <>
                     <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(150px, 1fr))', gap:'20px', marginBottom:'30px'}}>
                         <div className="stat-box" style={{background:'#0a0a0a', padding:'20px', borderRadius:'12px', border:'1px solid #333', textAlign:'center'}}>
@@ -217,6 +223,56 @@ export default function AssessmentsView({ user, linkedClients }) {
         </div>
     );
 
+    // Si es entrenador y está seleccionando cliente, muestra la lista (Vista 1)
+    if (user.role === 'Trainer' && !selectedClient) {
+        // Redefinimos la lógica de listado de clientes aquí
+        const filteredClients = linkedClients?.filter(c => 
+            c.firstName.toLowerCase().includes(searchTerm.toLowerCase())
+        ) || [];
+
+        return (
+            <div className="fade-in">
+                <h2 className="page-title">Realizar Valoración</h2>
+                <div style={{marginBottom:'25px', position:'relative'}}>
+                    <Search size={18} style={{position:'absolute', left:'15px', top:'14px', color:'#666'}}/>
+                    <input type="text" className="input-field" style={{paddingLeft:'45px'}} placeholder="Buscar cliente..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                </div>
+                
+                <div className="trainers-grid">
+                    {filteredClients.map(client => (
+                        <div key={client._id} className="trainer-card" onClick={() => handleSelectClient(client)} style={{cursor:'pointer'}}>
+                            
+                            {client.avatarUrl ? (
+                                <img 
+                                    src={client.avatarUrl} 
+                                    alt="Cliente" 
+                                    style={{
+                                        width:'80px', 
+                                        height:'80px', 
+                                        borderRadius:'50%', 
+                                        objectFit:'cover', 
+                                        marginBottom:'15px', 
+                                        border:'3px solid #E50914',
+                                        display: 'block',
+                                        margin: '0 auto 15px auto'
+                                    }}
+                                />
+                            ) : (
+                                <div className="trainer-avatar-placeholder" style={{background:'#E50914', border:'none'}}>
+                                    {client.firstName?.[0]?.toUpperCase()}
+                                </div>
+                            )}
+
+                            <h3>{client.firstName} {client.lastName}</h3>
+                            <button className="btn-primary" style={{width:'100%', marginTop:'15px'}}>Valorar Cliente</button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+    
+    // VISTA 2: Formulario de Entrenador (o solo tarjeta para Cliente)
     return (
         <div className="fade-in">
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '30px' }}>

@@ -15,7 +15,7 @@ export default function RoutinesView({ user, myRoutines, loadRoutines, startWork
     const [isCreating, setIsCreating] = useState(false);
     const [newRoutineName, setNewRoutineName] = useState('');
     const [newRoutineNotes, setNewRoutineNotes] = useState(''); 
-    const [newExercises, setNewExercises] = useState([{ name: '', sets: 3 }]);
+    const [newExercises, setNewExercises] = useState([{ name: '', sets: 3, reps: 10 }]); // Puedes usar cualquier valor por defecto, como 10
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
@@ -180,6 +180,17 @@ export default function RoutinesView({ user, myRoutines, loadRoutines, startWork
                                             <input type="number" className="input-mini" value={ex.sets} onChange={(e) => handleExerciseChange(index, 'sets', e.target.value)} />
                                         </div>
                                     </div>
+                                    <div style={{ width: '100px', textAlign: 'center' }}>
+                                    <div className="input-group-label">
+                                        <label>Repeticiones</label>
+                                        <input 
+                                            type="number" 
+                                            className="input-mini" 
+                                            value={ex.reps} 
+                                            onChange={(e) => handleExerciseChange(index, 'reps', e.target.value)} 
+                                        />
+                                    </div>
+                                </div>
                                 </div>
                             </div>
                         ))}

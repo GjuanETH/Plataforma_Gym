@@ -30,8 +30,12 @@ export default function WorkoutSession({ user, routine, onFinish, onCancel, refr
         const historyToUse = preloadedHistory || {}; 
         
         routine.exercises.forEach(ex => {
+            // Aseguramos que 'sets' sea un número válido y mínimo 1, o 3 por defecto
+            const numSets = Math.max(1, parseInt(ex.sets || 3)); 
+            
             initialLogs[ex.name] = [];
-            for (let i = 0; i < ex.sets; i++) {
+            for (let i = 0; i < numSets; i++) {
+                // El peso y las reps iniciales deben ser strings vacíos para el input
                 initialLogs[ex.name].push({ weight: '', reps: '', completed: false, restTime: 60 });
             }
             if (!preloadedHistory) {
@@ -64,12 +68,22 @@ export default function WorkoutSession({ user, routine, onFinish, onCancel, refr
         return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
     };
 
-    // --- LÓGICA DE SERIES ---
+    // --- LÓGICA DE SERIES CORREGIDA PARA PREVENIR NEGATIVOS ---
     const handleSetCheck = (exName, setIndex) => {
         const updatedLogs = { ...workoutLogs };
         const currentSet = updatedLogs[exName][setIndex];
-        if (!currentSet.weight || !currentSet.reps) return;
         
+        // Convertimos a número y aseguramos que no sean negativos
+        const weight = Math.max(0, Number(currentSet.weight || 0));
+        const reps = Math.max(0, Number(currentSet.reps || 0));
+
+        // Revisa que los campos no estén vacíos y que sean válidos (no 0 si se requiere)
+        if (!weight || !reps) return; 
+        
+        // Actualizamos los logs con los valores limpios antes de completar
+        currentSet.weight = weight.toString();
+        currentSet.reps = reps.toString();
+
         const isNowCompleted = !currentSet.completed;
         currentSet.completed = isNowCompleted;
         setWorkoutLogs(updatedLogs);
@@ -82,7 +96,15 @@ export default function WorkoutSession({ user, routine, onFinish, onCancel, refr
         }
     };
     
+    // Función centralizada para manejar inputs con filtro de negativos
     const handleWorkoutInput = (exName, setIndex, field, value) => {
+        const numValue = Number(value);
+        
+        // Filtro para asegurar que el valor no sea negativo (solo aplica a weight y reps)
+        if (field === 'weight' || field === 'reps') {
+            if (numValue < 0) return; // Simplemente ignorar la entrada negativa
+        }
+
         const updatedLogs = { ...workoutLogs };
         updatedLogs[exName][setIndex][field] = value;
         setWorkoutLogs(updatedLogs);
@@ -124,7 +146,7 @@ export default function WorkoutSession({ user, routine, onFinish, onCancel, refr
         Object.keys(workoutLogs).forEach(exName => {
             workoutLogs[exName].forEach((set) => {
                 if (set.completed) {
-                    sessionTotalKg += Number(set.weight) * Number(set.reps);
+                    sessionTotalKg += Math.max(0, Number(set.weight)) * Math.max(0, Number(set.reps));
                     sessionTotalSets++;
                     hasCompletedSets = true;
                 }
@@ -155,11 +177,10 @@ export default function WorkoutSession({ user, routine, onFinish, onCancel, refr
                             clientId: user.userId, 
                             routineId: routine._id || routine.id, 
                             exerciseName: exName, 
-                            weightUsed: Number(set.weight), 
-                            repsDone: Number(set.reps),
+                            weightUsed: Math.max(0, Number(set.weight)), // Limpieza final de negativos antes de enviar
+                            repsDone: Math.max(0, Number(set.reps)),
                             date: new Date(),
                             // ADJUNTAMOS LA FOTO SOLO AL PRIMER REGISTRO DE LA SESIÓN
-                            // Ahora sí funcionará porque photoUploadedUrl ya tiene valor (si se subió)
                             photoUrl: (logsToSave.length === 0 && photoUploadedUrl) ? photoUploadedUrl : null
                         });
                     }
@@ -167,8 +188,6 @@ export default function WorkoutSession({ user, routine, onFinish, onCancel, refr
             });
             
             // Guardar cada log en la BD
-            // Nota: Idealmente tu API debería aceptar un array de logs (batch), 
-            // pero lo dejamos en loop como lo tenías para no romper el backend actual.
             for (const log of logsToSave) { await trainingService.logProgress(log); }
             
             refreshStats(); // Actualizar el dashboard principal
@@ -214,7 +233,7 @@ export default function WorkoutSession({ user, routine, onFinish, onCancel, refr
         }
     };
 
-    // --- RENDERIZADO: MODAL RESUMEN ---
+    // --- RENDERIZADO: MODAL RESUMEN (No modificado) ---
     if (showSummary) {
         return (
             <div className="modal-overlay fade-in" style={{zIndex: 9999}}>
@@ -259,7 +278,7 @@ export default function WorkoutSession({ user, routine, onFinish, onCancel, refr
                             )}
                         </div>
 
-                        {/* ESTE BOTÓN AHORA EJECUTA EL GUARDADO FINAL */}
+                        {/* ESTE BOTÓN AHORRA EJECUTA EL GUARDADO FINAL */}
                         <button 
                             className="btn-secondary full-width" 
                             style={{marginTop:'20px', borderColor:'#333', background: '#E50914', color: 'white'}} 
@@ -301,8 +320,31 @@ export default function WorkoutSession({ user, routine, onFinish, onCancel, refr
                                     <div key={setIdx} className={`set-row ${set.completed ? 'completed' : ''}`}>
                                         <div className="set-num-col"><span className="set-number">{setIdx + 1}</span></div>
                                         <div className="prev-data-col"><div className="prev-badge">{prevText}</div></div>
-                                        <div><input type="number" className="workout-input" value={set.weight} onChange={(e) => {const up={...workoutLogs}; up[exName][setIdx].weight=e.target.value; setWorkoutLogs(up)}} disabled={set.completed} placeholder="-"/></div>
-                                        <div><input type="number" className="workout-input" value={set.reps} onChange={(e) => {const up={...workoutLogs}; up[exName][setIdx].reps=e.target.value; setWorkoutLogs(up)}} disabled={set.completed} placeholder="-"/></div>
+                                        
+                                        {/* 🎯 INPUTS CORREGIDOS: min="0" y usando handleWorkoutInput 🎯 */}
+                                        <div>
+                                            <input 
+                                                type="number" 
+                                                className="workout-input" 
+                                                value={set.weight} 
+                                                onChange={(e) => handleWorkoutInput(exName, setIdx, 'weight', e.target.value)}
+                                                disabled={set.completed} 
+                                                placeholder="-"
+                                                min="0" // Evita la flecha negativa en navegadores modernos
+                                            />
+                                        </div>
+                                        <div>
+                                            <input 
+                                                type="number" 
+                                                className="workout-input" 
+                                                value={set.reps} 
+                                                onChange={(e) => handleWorkoutInput(exName, setIdx, 'reps', e.target.value)}
+                                                disabled={set.completed} 
+                                                placeholder="-"
+                                                min="0" // Evita la flecha negativa en navegadores modernos
+                                            />
+                                        </div>
+
                                         <div className="set-actions-col">
                                             <button className={`btn-check-set ${set.completed ? 'active' : ''}`} onClick={() => handleSetCheck(exName, setIdx)}><Check size={20}/></button>
                                             {!set.completed && (

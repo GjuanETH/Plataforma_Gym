@@ -3,7 +3,8 @@ import { Timer, Check, XCircle, Plus, TimerReset, Medal, X as CloseIcon, Camera,
 import { trainingService } from '../../api';
 
 export default function WorkoutSession({ user, routine, onFinish, onCancel, refreshStats, preloadedHistory }) {
-    const API_KEY_IMGBB = '5ddc683f72b1a8e246397ff506b520d5';
+    // ⚠️ Reemplaza 'TU_API_KEY_IMGBB' con tu clave real.
+    const API_KEY_IMGBB = '5ddc683f72b1a8e246397ff506b520d5'; 
 
     // Estados del entrenamiento
     const [workoutLogs, setWorkoutLogs] = useState({});
@@ -154,7 +155,7 @@ export default function WorkoutSession({ user, routine, onFinish, onCancel, refr
         });
 
         if (!hasCompletedSets) { 
-            alert("No completaste nada. Se cancela el guardado."); 
+            alert("No completaste ninguna serie válida. Se cancela el guardado."); 
             return; 
         }
 
@@ -166,6 +167,9 @@ export default function WorkoutSession({ user, routine, onFinish, onCancel, refr
     // --- PASO 2: GUARDAR DEFINITIVAMENTE EN BD (Con foto si existe) ---
     const handleFinalSave = async () => {
         setLoading(true);
+        // CRUCIAL FIX: Adjuntamos la URL de la foto subida, si existe, a todos los logs.
+        const finalPhotoUrl = photoUploadedUrl || null; 
+
         try {
             const logsToSave = [];
             
@@ -177,11 +181,11 @@ export default function WorkoutSession({ user, routine, onFinish, onCancel, refr
                             clientId: user.userId, 
                             routineId: routine._id || routine.id, 
                             exerciseName: exName, 
-                            weightUsed: Math.max(0, Number(set.weight)), // Limpieza final de negativos antes de enviar
+                            weightUsed: Math.max(0, Number(set.weight)), 
                             repsDone: Math.max(0, Number(set.reps)),
                             date: new Date(),
-                            // ADJUNTAMOS LA FOTO SOLO AL PRIMER REGISTRO DE LA SESIÓN
-                            photoUrl: (logsToSave.length === 0 && photoUploadedUrl) ? photoUploadedUrl : null
+                            // CAMBIO: La URL de la foto se adjunta a CADA log de la sesión.
+                            photoUrl: finalPhotoUrl 
                         });
                     }
                 });
@@ -206,7 +210,8 @@ export default function WorkoutSession({ user, routine, onFinish, onCancel, refr
         if (file) {
             setWorkoutPhoto(file);
             setPhotoPreview(URL.createObjectURL(file));
-            setPhotoUploadedUrl(null);
+            // Resetear la URL subida si se selecciona una nueva foto
+            setPhotoUploadedUrl(null); 
         }
     };
 
@@ -220,29 +225,29 @@ export default function WorkoutSession({ user, routine, onFinish, onCancel, refr
             const res = await fetch(`https://api.imgbb.com/1/upload?key=${API_KEY_IMGBB}`, { method: 'POST', body: formData });
             const data = await res.json();
             if (data.success) {
-                setPhotoUploadedUrl(data.data.url); // Guardamos la URL para enviarla en handleFinalSave
-                alert("¡Foto subida con éxito! Dale a 'Guardar Rutina' para finalizar.");
+                setPhotoUploadedUrl(data.data.url); // Guardamos la URL
+                alert("¡Foto subida con éxito! Dale a 'Guardar Rutina y Finalizar' para guardar la sesión.");
             } else {
                 alert("Error subiendo foto: " + (data.error?.message || "Error desconocido"));
             }
         } catch (err) {
             console.error(err);
-            alert("Error de conexión.");
+            alert("Error de conexión al servidor de imágenes.");
         } finally {
             setUploadingPhoto(false);
         }
     };
 
-    // --- RENDERIZADO: MODAL RESUMEN (No modificado) ---
+    // --- RENDERIZADO: MODAL RESUMEN ---
     if (showSummary) {
         return (
-            <div className="modal-overlay fade-in" style={{zIndex: 9999}}>
+            // Estilos del modal que necesitarán CSS global o styled-jsx/components
+            <div className="modal-overlay fade-in" style={{zIndex: 9999}}> 
                 <div className="modal-content">
                     <div className="modal-header">
                         <h3 style={{display:'flex', alignItems:'center', gap:'10px', color:'#fff', margin:0}}>
                             <Medal color="#E50914"/> ¡Completado!
                         </h3>
-                        {/* Botón X cierra sin guardar cambios finales si no se desea */}
                         <button onClick={onFinish} className="btn-icon"><CloseIcon/></button>
                     </div>
                     
@@ -270,7 +275,7 @@ export default function WorkoutSession({ user, routine, onFinish, onCancel, refr
                                     <img src={photoPreview} alt="Preview" className="photo-preview-img" style={{opacity: uploadingPhoto ? 0.5 : 1}}/>
                                     <div style={{display:'flex', gap:'10px', marginTop:'10px'}}>
                                         <button className="btn-secondary" style={{flex:1}} onClick={() => fileInputRef.current.click()} disabled={uploadingPhoto || photoUploadedUrl}>Cambiar</button>
-                                        <button className="btn-primary" style={{flex:1, background: photoUploadedUrl ? 'var(--success)' : 'var(--primary)'}} onClick={handleSavePhoto} disabled={uploadingPhoto || photoUploadedUrl}>
+                                        <button className="btn-primary" style={{flex:1, background: photoUploadedUrl ? 'var(--success)' : '#E50914'}} onClick={handleSavePhoto} disabled={uploadingPhoto || photoUploadedUrl}>
                                             {uploadingPhoto ? <><Loader2 className="spin" size={16}/> Subiendo...</> : photoUploadedUrl ? <><Check size={16}/> ¡Lista!</> : <><Upload size={16}/> Subir</>}
                                         </button>
                                     </div>
@@ -278,7 +283,6 @@ export default function WorkoutSession({ user, routine, onFinish, onCancel, refr
                             )}
                         </div>
 
-                        {/* ESTE BOTÓN AHORRA EJECUTA EL GUARDADO FINAL */}
                         <button 
                             className="btn-secondary full-width" 
                             style={{marginTop:'20px', borderColor:'#333', background: '#E50914', color: 'white'}} 
@@ -296,6 +300,7 @@ export default function WorkoutSession({ user, routine, onFinish, onCancel, refr
     // --- RENDERIZADO: SESIÓN ACTIVA ---
     return (
         <div className="workout-session-overlay fade-in">
+            {/* 💡 Se asume que los estilos CSS para las clases como 'workout-session-overlay', 'workout-header', 'set-row', etc. están definidos globalmente o en otro módulo. */}
             <div className="workout-header">
                 <div><h2 style={{margin:0, color:'white'}}>{routine.name}</h2><div className="workout-timer"><Timer size={16} color={isTimerRunning ? "#E50914" : "#666"}/> <span>{formatTime(workoutTimer)}</span></div></div>
             </div>
@@ -321,7 +326,6 @@ export default function WorkoutSession({ user, routine, onFinish, onCancel, refr
                                         <div className="set-num-col"><span className="set-number">{setIdx + 1}</span></div>
                                         <div className="prev-data-col"><div className="prev-badge">{prevText}</div></div>
                                         
-                                        {/* 🎯 INPUTS CORREGIDOS: min="0" y usando handleWorkoutInput 🎯 */}
                                         <div>
                                             <input 
                                                 type="number" 
@@ -330,7 +334,7 @@ export default function WorkoutSession({ user, routine, onFinish, onCancel, refr
                                                 onChange={(e) => handleWorkoutInput(exName, setIdx, 'weight', e.target.value)}
                                                 disabled={set.completed} 
                                                 placeholder="-"
-                                                min="0" // Evita la flecha negativa en navegadores modernos
+                                                min="0"
                                             />
                                         </div>
                                         <div>
@@ -341,7 +345,7 @@ export default function WorkoutSession({ user, routine, onFinish, onCancel, refr
                                                 onChange={(e) => handleWorkoutInput(exName, setIdx, 'reps', e.target.value)}
                                                 disabled={set.completed} 
                                                 placeholder="-"
-                                                min="0" // Evita la flecha negativa en navegadores modernos
+                                                min="0"
                                             />
                                         </div>
 

@@ -111,7 +111,7 @@ export default function StatsView({ realStats }) {
             {/* --- Encabezado --- */}
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px'}}>
                 <h2 className="page-title" style={{marginBottom:0, color:'#E50914'}}>Análisis de Rendimiento 📊</h2>
-                <div style={{fontSize:'12px', color:'#666'}}>Datos Reales</div>
+                <div style={{fontSize:'12px', color:'#666'}}></div>
             </div>
             
             {/* --- Estilos JSX para la corrección (asumiendo Next.js o similar) --- */}

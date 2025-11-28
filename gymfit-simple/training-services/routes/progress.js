@@ -1,37 +1,55 @@
 const express = require('express');
 const router = express.Router();
-const Progress = require('../models/Progress');
+const Progress = require('../models/Progress'); // Asumo que tienes un modelo Progress
 
-// GUARDAR PROGRESO
-router.post('/progress', async (req, res) => {
-    // 1. AQUI ESTABA EL DETALLE: Hay que leer photoUrl del cuerpo de la petición
-    const { clientId, routineId, exerciseName, weightUsed, repsDone, date, photoUrl } = req.body;
-
+// 1. Ruta POST para GUARDAR PROGRESO (logProgress)
+router.post('/', async (req, res) => {
     try {
-        const newProgress = await Progress.create({
+        // Validación rápida de datos requeridos
+        const { clientId, exerciseName, weightUsed, repsDone, date } = req.body;
+        if (!clientId || !exerciseName || !weightUsed) {
+            console.error("⚠️ Datos de progreso incompletos");
+            return res.status(400).json({ message: "Datos de progreso incompletos." });
+        }
+
+        const newLog = await Progress.create({
             clientId,
-            routineId,
             exerciseName,
-            weightUsed,
-            repsDone,
-            date: date || Date.now(),
-            photoUrl: photoUrl || null // 2. Y pasarlo aquí para guardarlo
+            weightUsed: Number(weightUsed),
+            repsDone: Number(repsDone),
+            date: date || new Date(),
+            routineId: req.body.routineId, // Asegúrate de incluirlo si es necesario
+            photoUrl: req.body.photoUrl || null
         });
-        res.status(201).json(newProgress);
+
+        console.log("✅ Progreso guardado con éxito.");
+        res.status(201).json(newLog);
+
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Error guardando progreso' });
+        console.error("❌ ERROR CRÍTICO GUARDANDO PROGRESO:", err);
+        // Si hay un error de validación (ej. Mongoose), responde con 400
+        if (err.name === 'ValidationError') {
+            return res.status(400).json({ message: err.message, error: err.errors });
+        }
+        res.status(500).json({ message: 'Error interno al guardar progreso.', error: err.message });
     }
 });
 
-// OBTENER HISTORIAL (Este probablemente ya lo tienes bien, pero por si acaso)
-router.get('/progress/:clientId', async (req, res) => {
+// 2. Ruta GET para OBTENER HISTORIAL (getClientHistory)
+router.get('/:clientId', async (req, res) => {
     try {
-        const logs = await Progress.find({ clientId: req.params.clientId }).sort({ date: -1 });
-        res.json(logs);
+        // Nota: El frontend está llamando a /api/v1/training/progress/6929...
+        // Aquí obtienes el historial para ese cliente
+        const history = await Progress.find({ clientId: req.params.clientId })
+            .sort({ date: -1 })
+            .limit(100); // Limita el historial para no saturar
+        
+        res.json(history);
     } catch (err) {
-        res.status(500).json({ message: 'Error obteniendo historial' });
+        console.error("❌ Error obteniendo historial:", err);
+        res.status(500).json({ message: 'Error al obtener historial.', error: err.message });
     }
 });
+
 
 module.exports = router;

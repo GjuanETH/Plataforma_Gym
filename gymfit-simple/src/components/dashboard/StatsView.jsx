@@ -6,27 +6,35 @@ import {
 } from 'recharts';
 import { Camera, Trophy, Flame, Dumbbell, Activity, CalendarDays, Zap } from 'lucide-react';
 
-// Componente de Tooltip para el gráfico de barras (Volumen Semanal)
+// ===================================
+// Componentes de Tooltip Personalizados
+// ===================================
+
+// Tooltip para el gráfico de barras (Volumen Semanal)
 const CustomBarTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
+        // Asegúrate de usar las unidades correctas
+        const volumeKg = Math.round(payload[0].value);
         return (
-            <div style={{ backgroundColor: '#111', border: '1px solid #E50914', borderRadius: '8px', padding: '10px', color: 'white', fontSize: '14px' }}>
-                <p className="label" style={{ fontWeight: 'bold' }}>{`Día ${label}`}</p>
-                <p className="intro" style={{ color: '#0f0' }}>{`Volumen: ${Math.round(payload[0].value)} kg`}</p>
+            <div className="custom-tooltip">
+                <p className="label">{`Día ${label}`}</p>
+                <p className="intro" style={{ color: '#0f0' }}>{`Volumen: ${volumeKg} kg`}</p>
             </div>
         );
     }
     return null;
 };
 
-// Componente de Tooltip para el gráfico de líneas (Tendencia de Fuerza)
+// Tooltip para el gráfico de líneas (Tendencia de Fuerza)
 const CustomLineTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
+        // 'label' es el id (índice), el dato real está en payload[0].payload
+        const data = payload[0].payload;
         return (
-            <div style={{ backgroundColor: '#111', border: '1px solid #E50914', borderRadius: '8px', padding: '10px', color: 'white', fontSize: '14px' }}>
-                <p className="label" style={{ fontWeight: 'bold' }}>{`Sesión: ${payload[0].payload.exerciseName}`}</p>
-                <p className="intro" style={{ color: '#0f0' }}>{`Peso: ${payload[0].value} kg`}</p>
-                <p className="desc" style={{ color: '#aaa', fontSize: '12px' }}>{`Fecha: ${label}`}</p>
+            <div className="custom-tooltip">
+                <p className="label">{`Sesión: ${data.exerciseName || 'N/A'}`}</p>
+                <p className="intro" style={{ color: '#0f0' }}>{`Peso: ${data.kg} kg`}</p>
+                <p className="desc">{`Fecha: ${data.date || 'N/A'}`}</p>
             </div>
         );
     }
@@ -34,8 +42,27 @@ const CustomLineTooltip = ({ active, payload, label }) => {
 };
 
 
+// ===================================
+// Componente Principal: StatsView
+// ===================================
+
 export default function StatsView({ realStats }) {
-    const photos = realStats.photos || [];
+    
+    // --- LÓGICA DE FILTRADO Y PREPARACIÓN DE DATOS ---
+
+    // 🎯 Filtramos realStats.historyData para obtener las fotos de progreso
+    const photos = useMemo(() => {
+        if (!realStats.historyData) return [];
+
+        return realStats.historyData
+            .filter(log => log.photoUrl) // Mantenemos solo los logs que tienen una URL de foto
+            .map(log => ({ 
+                url: log.photoUrl, 
+                date: log.date // Usamos la fecha del log
+            }));
+
+    }, [realStats.historyData]);
+
 
     // --- GENERACIÓN DEL HEATMAP CON DATOS REALES ---
     const heatmapBoxes = useMemo(() => {
@@ -43,62 +70,62 @@ export default function StatsView({ realStats }) {
         const today = new Date();
         
         // Creamos un Set para búsqueda ultra rápida. 
+        // Aseguramos que activityDates es un array
         const activitySet = new Set(realStats.activityDates || []);
 
-        // Generamos los últimos 100 días
+        // Generamos los últimos 100 días (101 cajas incluyendo el día actual)
         for (let i = 100; i >= 0; i--) {
             const d = new Date();
             d.setDate(today.getDate() - i);
-            const dateStr = d.toISOString().split('T')[0]; // "YYYY-MM-DD"
+            // Formato universal ISO para la comparación
+            const dateStr = d.toISOString().split('T')[0]; 
 
-            // La lógica para la intensidad del color podría ser más sofisticada, 
-            // pero mantenemos simple: activo vs inactivo
             const isActive = activitySet.has(dateStr);
             const color = isActive ? '#E50914' : '#222'; 
-            const opacity = isActive ? 1 : 0.4; // Menor opacidad para inactivo
+            const opacity = isActive ? 1 : 0.4;
 
             boxes.push(
-                <div key={i} title={`${dateStr}: ${isActive ? 'Entrenaste' : 'Descanso'}`} style={{
-                    width: '12px', height: '12px', borderRadius: '3px', 
-                    backgroundColor: color, opacity: opacity,
-                    transition: 'all 0.3s ease',
-                    boxShadow: isActive ? '0 0 5px rgba(229, 9, 20, 0.5)' : 'none',
-                }}></div>
+                <div 
+                    key={i} 
+                    title={`${dateStr}: ${isActive ? 'Entrenaste' : 'Descanso'}`} 
+                    style={{
+                        width: '12px', height: '12px', borderRadius: '3px', 
+                        backgroundColor: color, opacity: opacity,
+                        transition: 'all 0.3s ease',
+                        boxShadow: isActive ? '0 0 5px rgba(229, 9, 20, 0.5)' : 'none',
+                    }}
+                ></div>
             );
         }
         return boxes;
     }, [realStats.activityDates]);
 
-    // Prepara los datos para la gráfica de tendencia de fuerza, usando la fecha completa
+    // Prepara los datos para la gráfica de tendencia de fuerza
     const forceTrendData = useMemo(() => {
-        // historyData contiene el nombre, peso (kg) y ahora usaremos el índice como ID temporal para XAxis
-        // En Dashboard.jsx, historyData es logs.slice(0, 20).reverse().map(l => ({ name: l.exerciseName.substring(0, 4), kg: l.weightUsed }));
-        // Lo modificaremos aquí para usar la fecha completa.
-        
-        // Nota: Asegúrate que historyData en Dashboard.jsx también devuelva la fecha real:
-        /* // En Dashboard.jsx:
-        const historyData = logs.slice(0, 20).reverse().map(l => ({ 
-            exerciseName: l.exerciseName, 
-            kg: l.weightUsed, 
-            date: new Date(l.date || l.createdAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
-        }));
-        */
-        return (realStats.historyData || []).map((item, index) => ({
-            ...item,
-            id: index, // Usamos el índice como clave en el eje X para mantener el orden
-            date: item.date // Asumiendo que ahora date contiene la fecha formateada ('27/nov')
-        }));
+        // historyData contiene el nombre, peso (kg) y la fecha
+        return (realStats.historyData || [])
+            .filter(item => item.kg !== undefined && item.kg !== null) // Filtramos datos sin peso
+            .map((item, index) => ({
+                ...item,
+                id: index, // Usamos el índice como clave en el eje X para mantener el orden
+                // item.date ya debería estar formateada ('27/nov'), si no, formatear aquí.
+            }));
     }, [realStats.historyData]);
 
+    // ===================================
+    // RENDERIZADO DEL COMPONENTE
+    // ===================================
 
     return (
         <div className="fade-in" style={{paddingBottom: '50px'}}>
+            {/* --- Encabezado --- */}
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px'}}>
                 <h2 className="page-title" style={{marginBottom:0, color:'#E50914'}}>Análisis de Rendimiento 📊</h2>
                 <div style={{fontSize:'12px', color:'#666'}}>Datos Reales</div>
             </div>
             
-            <style jsx="true">{`
+            {/* --- Estilos JSX para la corrección (asumiendo Next.js o similar) --- */}
+            <style jsx>{`
                 .stat-card {
                     background: #141414;
                     padding: 25px;
@@ -122,43 +149,63 @@ export default function StatsView({ realStats }) {
                     border-left: 5px solid #E50914;
                     padding: 15px 25px;
                 }
+                .custom-tooltip {
+                    background-color: #111;
+                    border: 1px solid #E50914;
+                    border-radius: 8px;
+                    padding: 10px;
+                    color: white;
+                    font-size: 14px;
+                }
+                .custom-tooltip .label {
+                    font-weight: bold;
+                }
+                .custom-tooltip .desc {
+                    color: #aaa;
+                    font-size: 12px;
+                }
             `}</style>
             
-            {/* --- GRID DE TARJETAS PRINCIPALES --- */}
+            {/* --- GRID DE TARJETAS PRINCIPALES (Key Metrics) --- */}
             <div className="stats-grid" style={{marginBottom: '30px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px'}}>
+                {/* Racha Actual */}
                 <div className="stat-card small">
                     <div style={{display:'flex', justifyContent:'space-between'}}>
                         <h3>Racha Actual</h3>
                         <Flame color={realStats.currentStreak > 0 ? "#FFD700" : "#666"} size={20}/>
                     </div>
-                    <p className="stat-number">{realStats.currentStreak} <span style={{fontSize:'14px', color:'#888', fontWeight:'normal'}}>días</span></p>
+                    <p className="stat-number">{realStats.currentStreak || 0} <span style={{fontSize:'14px', color:'#888', fontWeight:'normal'}}>días</span></p>
                 </div>
                 
+                {/* Volumen Total */}
                 <div className="stat-card small">
                     <div style={{display:'flex', justifyContent:'space-between'}}>
                         <h3>Volumen Total</h3>
                         <Dumbbell color="#E50914" size={20}/>
                     </div>
-                    <p className="stat-number">{(realStats.totalKg/1000).toFixed(1)}k <span style={{fontSize:'14px', color:'#888', fontWeight:'normal'}}>kg</span></p>
+                    <p className="stat-number">{((realStats.totalKg || 0)/1000).toFixed(1)}k <span style={{fontSize:'14px', color:'#888', fontWeight:'normal'}}>kg</span></p>
                 </div>
 
+                {/* Sesiones Totales */}
                 <div className="stat-card small">
                     <div style={{display:'flex', justifyContent:'space-between'}}>
                         <h3>Sesiones</h3>
                         <Activity color="#E50914" size={20}/>
                     </div>
-                    <p className="stat-number">{realStats.totalSessions}</p>
+                    <p className="stat-number">{realStats.totalSessions || 0}</p>
                 </div>
             </div>
 
             {/* --- SECCIÓN DE GRÁFICOS AVANZADOS --- */}
             <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '30px'}}>
                 
-                {/* 1. Radar Chart (Músculos Reales) */}
+                {/* 1. Radar Chart (Enfoque Muscular) */}
                 <div className="stat-card big" style={{height: 350}}>
                     <h3>Enfoque Muscular</h3>
                     <ResponsiveContainer width="100%" height="100%">
-                        <RadarChart cx="50%" cy="50%" outerRadius="70%" data={realStats.radarData && realStats.radarData.length > 0 ? realStats.radarData : [{subject:'Sin datos', A:0, fullMark:100}]}>
+                        <RadarChart cx="50%" cy="50%" outerRadius="70%" 
+                            data={realStats.radarData && realStats.radarData.length > 0 ? realStats.radarData : [{subject:'Sin datos', A:0, fullMark:100}]}
+                        >
                             <PolarGrid stroke="#333" />
                             <PolarAngleAxis dataKey="subject" tick={{ fill: '#888', fontSize: 12 }} />
                             <PolarRadiusAxis angle={30} domain={[0, 'auto']} tick={false} axisLine={false} />
@@ -168,14 +215,15 @@ export default function StatsView({ realStats }) {
                     </ResponsiveContainer>
                 </div>
 
-                {/* 2. Actividad Semanal (Barras Reales) */}
+                {/* 2. Actividad Semanal (Volumen Semanal) */}
                 <div className="stat-card big" style={{height: 350}}>
                     <h3>Volumen Semanal (kg)</h3>
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={realStats.weeklyActivity}>
+                        <BarChart data={realStats.weeklyActivity || []}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
                             <XAxis dataKey="day" stroke="#666" tickLine={false} />
-                            <YAxis stroke="#666" tickLine={false} tickFormatter={(value) => `${(value/1000).toFixed(0)}k`} />
+                            {/* Formateador para mostrar kgs en miles */}
+                            <YAxis stroke="#666" tickLine={false} tickFormatter={(value) => `${(value/1000).toFixed(0)}k`} /> 
                             <Tooltip cursor={{fill: '#333', opacity: 0.2}} content={<CustomBarTooltip />} />
                             <Bar dataKey="kg" fill="#E50914" radius={[4, 4, 0, 0]} />
                         </BarChart>
@@ -186,7 +234,7 @@ export default function StatsView({ realStats }) {
             {/* --- RÉCORDS Y PROGRESO --- */}
             <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '30px'}}>
                 
-                {/* Tabla de Récords Reales */}
+                {/* Tabla de Récords Personales (PRs) */}
                 <div className="stat-card" style={{height: 'auto', minHeight: '300px'}}>
                     <h3 style={{display:'flex', alignItems:'center', gap:'10px'}}><Trophy size={18} color="#FFD700"/> Récords Personales (PRs)</h3>
                     <div style={{marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '8px'}}>
@@ -199,7 +247,8 @@ export default function StatsView({ realStats }) {
                                     background:'#222', 
                                     borderRadius:'8px', 
                                     alignItems:'center',
-                                    borderLeft: idx === 0 ? '4px solid #FFD700' : '4px solid #444',
+                                    // Borde de oro para el PR principal, gris para los demás
+                                    borderLeft: idx === 0 ? '4px solid #FFD700' : '4px solid #444', 
                                 }}>
                                     <span style={{color:'#ddd', fontSize:'15px', display:'flex', alignItems:'center', gap:'8px'}}>
                                         {idx === 0 && <Zap size={16} color="#FFD700"/>}
@@ -222,15 +271,14 @@ export default function StatsView({ realStats }) {
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={forceTrendData}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false}/>
-                            {/* Mostramos el índice en el eje X para mantener el orden, pero usamos la fecha en el Tooltip */}
                             <XAxis 
                                 dataKey="id" 
                                 stroke="#666" 
                                 tick={{fontSize: 10}} 
+                                // Usamos el id, pero mostramos la fecha del dato correspondiente
                                 tickFormatter={(value) => forceTrendData[value] ? forceTrendData[value].date : ''}
                             />
                             <YAxis stroke="#666" domain={['dataMin', 'dataMax']} tickFormatter={(value) => `${value}kg`} tickLine={false}/>
-                            {/* Usamos el CustomLineTooltip para mostrar el nombre del ejercicio y el peso */}
                             <Tooltip content={<CustomLineTooltip />} />
                             <Line 
                                 type="monotone" 
@@ -245,11 +293,12 @@ export default function StatsView({ realStats }) {
                 </div>
             </div>
 
-            {/* --- MAPA DE CALOR REAL (Constancia) --- */}
+            {/* --- MAPA DE CALOR (Constancia) --- */}
             <div className="stat-card" style={{marginBottom: '40px'}}>
                 <h3 style={{display:'flex', alignItems:'center', gap:'10px', marginBottom:'15px'}}>
                     <CalendarDays size={18} color="#888"/> Constancia Real (Últimos 101 Días)
                 </h3>
+                {/* Contenedor del Heatmap */}
                 <div style={{display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'center'}}>
                     {heatmapBoxes}
                 </div>
@@ -277,7 +326,8 @@ export default function StatsView({ realStats }) {
                                 background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)', 
                                 color: 'white', fontSize: '10px', padding: '8px', textAlign: 'center'
                             }}>
-                                {new Date(photo.date).toLocaleDateString()}
+                                {/* Manejo de fecha segura */}
+                                {photo.date ? new Date(photo.date).toLocaleDateString() : 'N/A'}
                             </div>
                         </div>
                     ))}

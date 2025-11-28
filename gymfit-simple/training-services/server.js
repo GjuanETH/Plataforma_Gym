@@ -2,17 +2,16 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
-// --- IMPORTAR MODELOS (Para evitar errores de Mongoose) ---
+// --- IMPORTAR MODELOS ---
 require('./models/Routine'); 
 require('./models/Progress'); 
-require('./models/Assessment'); // <--- NUEVO: Importamos el modelo de Valoraciones
-// ---------------------------------------------------------
+require('./models/Assessment'); 
+// ------------------------
 
 // --- IMPORTAR RUTAS ---
-// Asegúrate de que estos archivos existan en la carpeta 'routes'
 const routineRoutes = require('./routes/routines'); 
 const progressRoutes = require('./routes/progress');
-const assessmentRoutes = require('./routes/assessments'); // <--- NUEVO: Importamos el archivo de rutas
+const assessmentRoutes = require('./routes/assessments'); 
 // ---------------------
 
 const app = express();
@@ -20,27 +19,36 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// --- LOG DE DEPURACIÓN (Para ver si llegan las peticiones) ---
+app.use((req, res, next) => {
+    console.log(`[TRAINING-SERVICE] Petición entrante: ${req.method} ${req.url}`);
+    next();
+});
+
 // --- USAR RUTAS ---
-// El Gateway envía la petición con el prefijo /api/v1/training
-// Así que montamos las rutas en ese path base.
-
-// Rutas de Rutinas (Crear, Ver)
 app.use('/api/v1/training', routineRoutes);
+app.use('/api/v1/training/progress', progressRoutes);
+app.use('/api/v1/assessments', assessmentRoutes);
 
-// Rutas de Progreso (Guardar historial, Ver historial)
-app.use('/api/v1/training', progressRoutes);
+// --- CONEXIÓN DB Y ARRANQUE ---
+const MONGO_URI = process.env.MONGO_URI;
+const PORT = process.env.PORT || 3002;
 
-// Rutas de Valoraciones (Assessments)
-// NOTA: El frontend llama a /api/v1/assessments, así que definimos esa ruta base aquí
-app.use('/api/v1/assessments', assessmentRoutes); // <--- NUEVO: Conectamos el cable
-// ------------------
-
-// Conexión a BD
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/training_service_db';
+if (!MONGO_URI) {
+    console.error("❌ ERROR FATAL: No hay MONGO_URI definida.");
+    process.exit(1);
+}
 
 mongoose.connect(MONGO_URI)
-  .then(() => console.log('✅ Training Service conectado a MongoDB'))
-  .catch(err => console.error('❌ Error conectando a MongoDB:', err));
-
-const PORT = process.env.PORT || 3002;
-app.listen(PORT, () => console.log(`🚀 Training Service corriendo en puerto ${PORT}`));
+    .then(() => {
+        console.log('✅ Training Service conectado a MongoDB');
+        
+        // --- LA PIEZA QUE FALTABA: ARRANCAR EL SERVIDOR EN 0.0.0.0 ---
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`🚀 Training Service corriendo en http://0.0.0.0:${PORT}`);
+        });
+    })
+    .catch(err => {
+        console.error('❌ Error Mongo:', err);
+        process.exit(1);
+    });

@@ -1,31 +1,30 @@
 version: '3'
 services:
-  # 1. API Gateway (La única puerta abierta al público)
+  # 1. API Gateway
   api-gateway:
-    image: gjuaneth/gymfit-gateway:latest  # <--- CAMBIA 'tuusuario' por tu usuario de Docker Hub
+    image: gjuaneth/gymfit-gateway:latest
     restart: always
     ports:
-      - "80:8080" # Mapea el puerto 80 (web estándar) al 8080 de tu app
+      - "80:8080"
     environment:
       - PORT=8080
       - AUTH_SERVICE_URL=http://auth-service:3001
       - TRAINING_SERVICE_URL=http://training-services:3002
 
-  # 2. Auth Service (Privado)
+  # 2. Auth Service
   auth-service:
-    image: gjuaneth/gymfit-auth:latest    # <--- CAMBIA 'tuusuario'
+    image: gjuaneth/gymfit-auth:latest
     restart: always
     environment:
       - PORT=3001
-      # Azure inyectará estas variables por seguridad, 
-      # pero las dejamos aquí referenciadas.
-      - MONGO_URI=${MONGO_URI} 
+      - MONGO_URI=${MONGO_URI}
       - JWT_SECRET=${JWT_SECRET}
 
-  # 3. Training Service (Privado)
+  # 3. Training Service
   training-services:
-    image: gjuaneth/gymfit-training:latest # <--- CAMBIA 'tuusuario'
+    image: gjuaneth/gymfit-training:latest
     restart: always
     environment:
       - PORT=3002
-      - MONGO_URI=${MONGO_URI}
+      # CORRECCIÓN AQUÍ: Quitamos el =${...}
+      - MONGO_URI

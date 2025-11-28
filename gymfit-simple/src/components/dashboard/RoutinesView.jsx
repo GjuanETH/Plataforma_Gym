@@ -70,17 +70,29 @@ export default function RoutinesView({ user, myRoutines, loadRoutines, startWork
         setNewExercises(updated);
     };
 
+    // 🎯 FUNCIÓN handleSaveRoutine CORREGIDA (SOLUCIONA EL ERROR 400) 🎯
     const handleSaveRoutine = async () => {
         if (!newRoutineName.trim()) return alert("Ponle un nombre a la rutina");
         if (newExercises.some(ex => !ex.name.trim())) return alert("Completa los nombres de los ejercicios");
 
-        const targetClientId = user.role === 'Trainer' ? selectedClient?._id : user.userId;
-        if (!targetClientId) return alert("Error: No hay cliente seleccionado");
+        // 1. DEFINICIÓN DE LOS IDs NECESARIOS
+        // ID del cliente a quien se asigna la rutina (puede ser él mismo)
+        const clientId = user.role === 'Trainer' ? selectedClient?._id : user.userId;
+        
+        // ID de la persona que ASIGNA/CREA la rutina (siempre el usuario logueado)
+        const trainerIdToSend = user.userId; 
+
+        if (!clientId || !trainerIdToSend) {
+            // Este alert ya no debería aparecer si el usuario está logueado
+            return alert("Error: Faltan IDs de usuario/cliente para asignar la rutina."); 
+        }
 
         setIsSaving(true);
         try {
             const routineData = {
-                clientId: targetClientId,
+                // 👇 ENVÍA AMBOS IDs AL BACKEND (trainerIdToSend ahora está definido)
+                clientId: clientId,
+                trainerId: trainerIdToSend, // <--- CAMBIO CRUCIAL PARA LA VALIDACIÓN DEL BACKEND
                 name: newRoutineName,
                 description: newRoutineNotes,
                 exercises: newExercises,
@@ -88,15 +100,20 @@ export default function RoutinesView({ user, myRoutines, loadRoutines, startWork
             };
 
             await trainingService.createRoutine(routineData);
-            loadRoutines(targetClientId);
+            
+            // Lógica de éxito
+            loadRoutines(clientId);
             setIsCreating(false);
             setNewRoutineName('');
             setNewRoutineNotes('');
             setNewExercises([{ name: '', sets: 3 }]);
             alert("¡Rutina asignada con éxito!");
+
         } catch (error) {
             console.error(error);
-            alert("Error al crear la rutina");
+            // Mostrar el mensaje de error específico devuelto por el backend (400 Bad Request)
+            const msg = error.response?.data?.message || "Error al crear la rutina";
+            alert(msg); 
         } finally {
             setIsSaving(false);
         }

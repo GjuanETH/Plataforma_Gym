@@ -4,51 +4,65 @@ const cors = require('cors');
 
 const app = express();
 
-// 1. Configuración de CORS
+// --- 1. CONFIGURACIÓN CORS ---
+const allowedOrigins = [
+    'https://black-moss-056cc280f.3.azurestaticapps.net', 
+    'http://localhost:5173', 
+    'http://localhost:4173'
+];
+
 app.use(cors({
-    origin: '*', 
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) {
+            console.log(`[CORS BLOQUEADO] Origen: ${origin}`);
+            return callback(new Error('Bloqueado por CORS'), false);
+        }
+        return callback(null, true);
+    },
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// 2. Definir URL de los servicios (Variables de entorno o localhost para Docker)
+app.use((req, res, next) => {
+    console.log(`[GATEWAY] ${req.method} ${req.url}`);
+    next();
+});
+
+// --- 3. DEFINICIÓN DE SERVICIOS (CORREGIDO PARA DOCKER) ---
+// CAMBIO: El fallback ahora apunta al nombre del servicio en Docker, no a 127.0.0.1
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
 const TRAINING_SERVICE_URL = process.env.TRAINING_SERVICE_URL || 'http://training-services:3002'; 
 
-// 3. Ruta de Salud
-app.get('/', (req, res) => {
-    res.send('API Gateway GymFit funcionando 🚀');
-});
+console.log(`[CONFIG] Auth apunta a: ${AUTH_SERVICE_URL}`);
+console.log(`[CONFIG] Training apunta a: ${TRAINING_SERVICE_URL}`);
 
-// 4. Configurar Proxies
+app.get('/', (req, res) => res.send('API Gateway GymFit funcionando 🚀'));
 
-// --- AUTH SERVICE & CHAT (Todo va al puerto 3001) ---
+// --- 5. PROXIES ---
 app.use(['/api/v1/auth', '/api/v1/chat', '/api/v1/clients'], createProxyMiddleware({
     target: AUTH_SERVICE_URL,
     changeOrigin: true,
-    onProxyReq: (proxyReq, req, res) => {
-       // console.log(`[Proxy Auth Group] ...`);
+    pathRewrite: {
+        // A veces es necesario, a veces no. Si tus microservicios esperan /api/v1, déjalo así.
     },
     onError: (err, req, res) => {
-        console.error('[Proxy Error Auth Group]', err);
-        res.status(500).send('Error de conexión');
+        console.error('[Proxy Error Auth]', err.code);
+        res.status(500).json({ error: 'Auth Service no disponible', details: err.message });
     }
 }));
 
-// --- TRAINING SERVICE & ASSESSMENTS (Va al puerto 3002) ---
-// CAMBIO AQUÍ: Agregamos '/api/v1/assessments' al arreglo para que pase
 app.use(['/api/v1/training', '/api/v1/assessments'], createProxyMiddleware({
     target: TRAINING_SERVICE_URL,
     changeOrigin: true,
     onError: (err, req, res) => {
-        console.error('[Proxy Error Training]', err);
-        res.status(500).send('Error de conexión con Training Service');
+        console.error('[Proxy Error Training]', err.code);
+        res.status(500).json({ error: 'Training Service no disponible', details: err.message });
     }
 }));
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-    console.log(`Gateway corriendo en el puerto ${PORT}`);
-    console.log(` -> Redirigiendo Auth/Chat a: ${AUTH_SERVICE_URL}`);
-    console.log(` -> Redirigiendo Training/Assessments a: ${TRAINING_SERVICE_URL}`);
+app.listen(PORT, '0.0.0.0', () => { 
+    console.log(`🚀 Gateway en puerto ${PORT}`);
 });

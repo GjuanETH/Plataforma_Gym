@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // --- CONFIGURACIÓN CENTRAL ---
 // Apuntamos a la raíz del API Gateway.
-const API_GATEWAY_URL = 'http://localhost:8080/api/v1';
+const API_GATEWAY_URL = 'https://gymfit-h5eabqhkbydebzbc.brazilsouth-01.azurewebsites.net/api/v1';
 
 const api = axios.create({
     baseURL: API_GATEWAY_URL,

@@ -50,18 +50,8 @@ export default function StatsView({ realStats }) {
     
     // --- LÓGICA DE FILTRADO Y PREPARACIÓN DE DATOS ---
 
-    // 🎯 Filtramos realStats.historyData para obtener las fotos de progreso
-    const photos = useMemo(() => {
-        if (!realStats.historyData) return [];
-
-        return realStats.historyData
-            .filter(log => log.photoUrl) // Mantenemos solo los logs que tienen una URL de foto
-            .map(log => ({ 
-                url: log.photoUrl, 
-                date: log.date // Usamos la fecha del log
-            }));
-
-    }, [realStats.historyData]);
+    // 🎯 CORRECCIÓN APLICADA: Usamos directamente el array 'photos' precalculado por Dashboard
+    const photos = realStats.photos || []; 
 
 
     // --- GENERACIÓN DEL HEATMAP CON DATOS REALES ---

@@ -12,7 +12,7 @@ import RoutinesView from '../components/dashboard/RoutinesView';
 import WorkoutSession from '../components/dashboard/WorkoutSession';
 import OrdersView from '../components/dashboard/OrdersView';
 import ZenModeView from '../components/dashboard/ZenModeView';
-import AssessmentsView from '../components/dashboard/AssessmentsView'; // <--- IMPORTACIÓN NUEVA
+import AssessmentsView from '../components/dashboard/AssessmentsView';
 
 import ZenMusic from '../assets/peaceful solitude [F02iMCEEQWs].mp3';
 
@@ -90,6 +90,7 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
 
         if (user.role === 'Client') {
             loadRoutines();
+            // Llama a la carga inicial de estadísticas
             trainingService.getClientHistory(user.userId).then(logs => calculateRealStats(logs));
             chatService.getTrainers().then(data => setTrainersList(data));
             clientService.getPendingRequests(user.userId).then(data => setPendingRequests(data));
@@ -136,19 +137,30 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
         const activityDates = Array.from(uniqueDatesSet);
 
         let currentStreak = 0;
-        const todayStr = new Date().toISOString().split('T')[0];
-        const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
         const yesterdayStr = yesterday.toISOString().split('T')[0];
 
         if (uniqueDatesSet.has(todayStr) || uniqueDatesSet.has(yesterdayStr)) {
             currentStreak = 1;
-            for (let i = 0; i < uniqueDaysList.length - 1; i++) {
-                const d1 = new Date(uniqueDaysList[i]);
-                const d2 = new Date(uniqueDaysList[i+1]);
-                const diff = Math.ceil(Math.abs(d1 - d2) / (1000 * 60 * 60 * 24));
-                if (diff === 1) currentStreak++; else break;
+            // Corregir la lógica de la racha para usar fechas
+            const sortedUniqueDates = Array.from(uniqueDatesSet).sort();
+            for (let i = sortedUniqueDates.length - 1; i >= 1; i--) {
+                const d1 = new Date(sortedUniqueDates[i]);
+                const d2 = new Date(sortedUniqueDates[i-1]);
+                const diffMs = Math.abs(d1 - d2);
+                const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+                
+                // Si la diferencia es de 1 día, o si estamos en el mismo día (margen de error pequeño)
+                if (diffDays === 1) {
+                    currentStreak++; 
+                } else if (diffDays > 1) {
+                    break;
+                }
             }
         }
+
 
         const totalKg = logs.reduce((acc, log) => acc + (Number(log.weightUsed) * Number(log.repsDone)), 0);
         const totalSessions = uniqueDaysList.length;
@@ -157,13 +169,14 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
         const dayLabels = { 'Mon': 'L', 'Tue': 'M', 'Wed': 'X', 'Thu': 'J', 'Fri': 'V', 'Sat': 'S', 'Sun': 'D' };
 
         const curr = new Date();
-        const dayOfWeek = curr.getDay() === 0 ? 7 : curr.getDay();
+        const dayOfWeek = curr.getDay() === 0 ? 7 : curr.getDay(); // Domingo es 0, lo cambiamos a 7
         const firstDayOfWeek = new Date(curr);
-        firstDayOfWeek.setDate(curr.getDate() - dayOfWeek + 1);
+        firstDayOfWeek.setDate(curr.getDate() - dayOfWeek + 1); // Empezamos en lunes
         firstDayOfWeek.setHours(0,0,0,0);
 
         logs.forEach(log => {
             const logDate = new Date(log.date || log.createdAt);
+            // Revisa si es de la semana actual o no
             if (logDate >= firstDayOfWeek) {
                 const dayStr = logDate.toDateString().split(' ')[0];
                 if (weeklyActivityMap[dayStr] !== undefined) {
@@ -192,10 +205,24 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
         const historyData = logs.slice(0, 20).reverse().map(l => ({
             exerciseName: l.exerciseName,
             kg: l.weightUsed,
+            // Formateo de fecha para el eje X del gráfico de tendencia
             date: new Date(l.date || l.createdAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
         }));
+        
+        // --- 📸 CORRECCIÓN DE LA LÓGICA DE FOTOS (Eliminar duplicados) ---
+        const uniquePhotosMap = new Map();
+        logs.filter(l => l.photoUrl).forEach(l => {
+            // Usamos la URL como clave única para evitar que los logs de la misma sesión se repitan
+            if (!uniquePhotosMap.has(l.photoUrl)) {
+                uniquePhotosMap.set(l.photoUrl, { 
+                    url: l.photoUrl, 
+                    date: l.date || l.createdAt 
+                });
+            }
+        });
+        // Convertimos a array y ordenamos del más nuevo al más viejo
+        const photos = Array.from(uniquePhotosMap.values()).sort((a,b)=>new Date(b.date)-new Date(a.date));
 
-        const photos = logs.filter(l => l.photoUrl).map(l => ({ url: l.photoUrl, date: l.date || l.createdAt })).sort((a,b)=>new Date(b.date)-new Date(a.date));
 
         setRealStats({ totalSessions, totalKg, currentStreak, weeklyActivity: orderedChartData, historyData, photos, radarData, personalRecords, activityDates });
     };
@@ -218,6 +245,7 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
         }
     };
 
+    // FUNCIÓN DE RECARGA: Obtiene el historial y vuelve a calcular las estadísticas
     const refreshStats = () => trainingService.getClientHistory(user.userId).then(logs => calculateRealStats(logs));
 
     const handleStartSession = async (routine) => {
@@ -281,7 +309,14 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
 
                 <main className="dashboard-content-area" ref={contentRef}>
                     {activeWorkoutRoutine && (
-                        <WorkoutSession user={user} routine={activeWorkoutRoutine} preloadedHistory={activeWorkoutRoutine.preloadedHistory} onFinish={() => setActiveWorkoutRoutine(null)} onCancel={() => setActiveWorkoutRoutine(null)} refreshStats={refreshStats}/>
+                        <WorkoutSession 
+                            user={user} 
+                            routine={activeWorkoutRoutine} 
+                            preloadedHistory={activeWorkoutRoutine.preloadedHistory} 
+                            onFinish={() => setActiveWorkoutRoutine(null)} 
+                            onCancel={() => setActiveWorkoutRoutine(null)} 
+                            refreshStats={refreshStats} // Esta función recarga las estadísticas con la foto
+                        />
                     )}
 
                     {activeTab === 'zen' && isZenMode && (
@@ -301,7 +336,6 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
                                 />
                             )}
                             
-                            {/* --- AQUÍ SE RENDERIZA LA NUEVA VISTA DE VALORACIONES --- */}
                             {activeTab === 'assessments' && (
                                 <AssessmentsView 
                                     user={user} 
